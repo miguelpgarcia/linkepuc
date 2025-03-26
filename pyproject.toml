@@ -1,0 +1,16 @@
+[project]
+name = "linkepuc"
+version = "0.1.0"
+description = "A LinkedIn-like system tailored for PUC"
+authors = ["Your Name <your_email@example.com>"]
+license = "MIT"
+requires-python = ">=3.12"
+
+# This is where you declare your dependencies
+dependencies = [
+    "pdfplumber",
+    "pandas",
+    "fastapi",
+    "uvicorn"
+]
+

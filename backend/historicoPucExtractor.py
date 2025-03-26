@@ -17,7 +17,7 @@ def separar_codigo_nome(disciplina_str):
         return '', disciplina_str.strip()
 
 # Define the path to your PDF file
-pdf_path = 'historicoPuc.pdf'
+pdf_path = 'historicoPuc2.pdf'
 
 # Initialize an empty list to store the rows of the table
 data = []
