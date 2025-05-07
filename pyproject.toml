@@ -19,5 +19,11 @@ dependencies = [
     "python-jose>=3.4.0",
     "python-multipart>=0.0.20",
     "bcrypt>=4.3.0",
+    "cloudinary",
+    "requests",
+    "beautifulsoup4",
+    "selenium>=4.31.0",
+    "webdriver-manager>=4.0.2",
+    "pydantic>=2.10.6",
 ]
 
