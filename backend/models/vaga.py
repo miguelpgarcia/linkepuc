@@ -4,6 +4,7 @@ from datetime import datetime
 from .base import Base
 from .user import User
 from .tipo_vaga import Tipo  # Import the Tipo model
+from .localizacao import Location  # Make sure this import is present
 
 class Vagas(Base):
     __tablename__ = "vagas"
@@ -17,6 +18,11 @@ class Vagas(Base):
     horas_complementares = Column(Integer, nullable=True)  # New column
     desconto = Column(Integer, nullable=True)  # New column
     criado_em = Column(TIMESTAMP, default=datetime.now)
+    location_id = Column(Integer, ForeignKey("location.id"), nullable=False)
+    department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
 
     autor = relationship("User")
     tipo = relationship("Tipo")  # Relationship with Tipo table
+    interesses = relationship("InteresseVaga", back_populates="vaga")
+    location = relationship("Location")
+    department = relationship("Departamento")

@@ -5,6 +5,7 @@ from controllers.interesse_controller import interesse_router
 from controllers.vaga_controller import vaga_router
 from controllers.interesse_usuario_controller import interesse_usuario_router
 from controllers.publicacao_controller import publicacao_router
+from controllers.department_controller import departamento_router
 from models.base import Base, engine
 
 # Initialize database
@@ -28,6 +29,7 @@ app.include_router(interesse_router, prefix="/interesses", tags=["Interesses"])
 app.include_router(vaga_router, prefix="/vagas", tags=["Vagas"])
 app.include_router(interesse_usuario_router, prefix="/interesse-usuario", tags=["InteresseUsuario"])
 app.include_router(publicacao_router, prefix="/publicacoes", tags=["Publicacoes"])
+app.include_router(departamento_router, prefix="/departamentos", tags=["Departamentos"])
 
 @app.get("/")
 async def hello_world():
