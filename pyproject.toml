@@ -1,0 +1,30 @@
+[project]
+name = "linkepuc"
+version = "0.1.0"
+description = "A LinkedIn-like system tailored for PUC"
+authors = ["Miguel Garcia <mpgarcia.br@gmail.com>"]
+license = "MIT"
+requires-python = ">=3.12"
+
+# This is where you declare your dependencies
+dependencies = [
+    "pdfplumber",
+    "pandas",
+    "fastapi",
+    "uvicorn",
+    "python-dotenv",
+    "sqlalchemy>=2.0.40",
+    "psycopg2",
+    "passlib>=1.7.4",
+    "python-jose>=3.4.0",
+    "python-multipart>=0.0.20",
+    "bcrypt==4.0.1",
+    "cloudinary",
+    "requests",
+    "beautifulsoup4",
+    "selenium>=4.31.0",
+    "webdriver-manager>=4.0.2",
+    "pydantic>=2.10.6",
+    "openai>=1.79.0",
+]
+

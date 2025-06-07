@@ -1,0 +1,7 @@
+{
+    "name": "Debug fetch_mail_opportunities",
+    "type": "python",
+    "request": "launch",
+    "module": "services.fetch_mail_opportunities",
+    "console": "integratedTerminal"
+}
