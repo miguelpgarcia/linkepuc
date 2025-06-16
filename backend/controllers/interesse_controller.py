@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from repositories.interesse_repository import (
     create_interesse,
@@ -6,10 +6,12 @@ from repositories.interesse_repository import (
     get_interesse,
     update_interesse,
     delete_interesse,
+    add_user_interests,
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
-from dependecies import get_current_user_id
+from dependecies import get_current_user
+from typing import List
 
 
 interesse_router = APIRouter()
@@ -19,6 +21,10 @@ class InteresseCreate(BaseModel):
 
 class InteresseUpdate(BaseModel):
     nome: str
+
+class UserInterestsRequest(BaseModel):
+    usuario_id: int
+    interesses: List[str]
 
 def get_db():
     db = SessionLocal()
@@ -32,7 +38,7 @@ async def create_interesse_endpoint(interesse: InteresseCreate, db: Session = De
     return create_interesse(db, interesse.nome)
 
 @interesse_router.get("/")
-async def read_interesses_endpoint(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+async def read_interesses_endpoint(db: Session = Depends(get_db)):
     return get_interesses(db)
 
 @interesse_router.get("/{id}")
@@ -43,7 +49,7 @@ async def read_interesse_endpoint(id: int, db: Session = Depends(get_db)):
     return interesse
 
 @interesse_router.put("/{id}")
-async def update_interesse_endpoint(id: int, interesse: InteresseUpdate, db: Session = Depends(get_db),user_id: int = Depends(get_current_user_id)):
+async def update_interesse_endpoint(id: int, interesse: InteresseUpdate, db: Session = Depends(get_db),user_id: int = Depends(get_current_user)):
     updated = update_interesse(db, id, interesse.nome)
     if not updated:
         raise HTTPException(status_code=404, detail="Interesse not found")
@@ -55,3 +61,14 @@ async def delete_interesse_endpoint(id: int, db: Session = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Interesse not found")
     return {"message": "Interesse deleted successfully"}
+
+@interesse_router.post("/usuario")
+async def add_interests_endpoint(request: UserInterestsRequest, db: Session = Depends(get_db)):
+    try:
+        add_user_interests(db, request.usuario_id, request.interesses)
+        return {"message": "Interesses adicionados com sucesso"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )

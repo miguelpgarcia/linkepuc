@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -18,10 +17,12 @@ import {
 type ProfessorData = {
   fullName: string;
   email: string;
+  password: string;
   department: string;
   specialties: string[];
   bio: string;
   academicTitle: string;
+  role: "professor";
 };
 
 const SPECIALTIES = [
@@ -82,38 +83,78 @@ export default function ProfessorRegister() {
   const [formData, setFormData] = useState<ProfessorData>({
     fullName: "",
     email: "",
+    password: "",
     department: "",
     specialties: [],
     bio: "",
-    academicTitle: ""
+    academicTitle: "",
+    role: "professor"
   });
   
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email.endsWith("@puc-rio.br")) {
+    if (!formData.email.endsWith("puc-rio.br")) {
       toast({
         title: "Email inválido",
-        description: "Por favor, use seu email institucional (@puc-rio.br)",
+        description: "Por favor, use seu email institucional (puc-rio.br)",
         variant: "destructive",
       });
       return;
     }
     
-    console.log("Dados do professor:", formData);
+    try {
+      // Create the professor user
+      const userResponse = await fetch("http://localhost:8000/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuario: formData.fullName,
+          password: formData.password,
+          ehaluno: false,
+          email: formData.email
+        }),
+      });
+
+      if (!userResponse.ok) {
+        throw new Error("Erro ao criar usuário");
+      }
+
+      const userData = await userResponse.json();
+      
+      // Add professor specialties as interests
+      const interestsResponse = await fetch("http://localhost:8000/interesses/usuario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuario_id: userData.user_id,
+          interesses: formData.specialties
+        }),
+      });
+
+      if (!interestsResponse.ok) {
+        throw new Error("Erro ao salvar especialidades");
+      }
     
     toast({
       title: "Cadastro realizado com sucesso!",
-      description: "Redirecionando para o dashboard...",
+        description: "Por favor, verifique seu email para ativar sua conta.",
     });
     
-    // Simular delay antes do redirecionamento
+      // Redirect to login page
     setTimeout(() => {
-      navigate("/professor/dashboard");
-    }, 1500);
+        window.location.href = "/professor/login";
+      }, 2000);
+    } catch (error) {
+      toast({
+        title: "Erro ao realizar cadastro",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -168,6 +209,18 @@ export default function ProfessorRegister() {
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  required
+                  minLength={6}
                 />
               </div>
 

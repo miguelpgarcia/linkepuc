@@ -1,17 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile,status
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, status
 from utils.jwt_utils import create_access_token
-
-
 from sqlalchemy.orm import Session
-from repositories.user_repository import *
+from repositories.user_repository import (
+    create_user,
+    get_user_by_email,
+    get_user,
+    get_users,
+    update_user,
+    delete_user,
+    verify_password,
+)
 from models.base import SessionLocal
 from pydantic import BaseModel
 import cloudinary
 import cloudinary.uploader
 import os
 from dotenv import load_dotenv
-from dependecies import get_current_user_id
-
+from dependecies import get_current_user
+from services.email_service import generate_verification_token, get_token_expiry, send_verification_email
+from datetime import datetime, timedelta
+from passlib.context import CryptContext
+from jose import jwt, JWTError
 
 # Load environment variables from .env file
 load_dotenv()
@@ -35,10 +44,12 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-
 class UserUpdate(BaseModel):
     usuario: str
     ehaluno: bool
+
+class VerifyEmailRequest(BaseModel):
+    token: str
 
 def get_db():
     db = SessionLocal()
@@ -49,7 +60,99 @@ def get_db():
 
 @user_router.post("/")
 async def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
-    return create_user(db, user.usuario, user.password, user.ehaluno, user.email)
+    try:
+        # Check if user already exists
+        existing_user = get_user_by_email(db, user.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Create user with individual parameters
+        db_user = create_user(
+            db=db,
+            usuario=user.usuario,
+            password=user.password,
+            ehaluno=user.ehaluno,
+            email=user.email
+        )
+        
+        # Generate verification token and expiry
+        token_expiry = datetime.utcnow() + timedelta(hours=24)
+        token_data = {
+            "sub": str(db_user.id),
+            "exp": token_expiry
+        }
+        token = jwt.encode(token_data, os.getenv("SECRET_KEY"), algorithm="HS256")
+        
+        # Save token and expiry to database
+        db_user.verification_token = token
+        db_user.verification_token_expires = token_expiry
+        db.commit()
+        
+        try:
+            # Send verification email with is_student parameter
+            await send_verification_email(db_user.email, token, user.ehaluno)
+        except Exception as e:
+            # If email sending fails, delete the user and roll back
+            db.delete(db_user)
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to send verification email: {str(e)}"
+            )
+        
+        return {
+            "message": "User created successfully. Please check your email to verify your account.",
+            "user_id": db_user.id
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@user_router.post("/verify-email")
+async def verify_email_endpoint(request: VerifyEmailRequest, db: Session = Depends(get_db)):
+    try:
+        print(f"Verifying email with token: {request.token}")
+        # Decode the token
+        payload = jwt.decode(request.token, os.getenv("SECRET_KEY"), algorithms=["HS256"])
+        user_id = int(payload["sub"])
+        print(f"Decoded user_id from token: {user_id}")
+        
+        # Get user and verify
+        user = get_user(db, user_id)
+        if not user:
+            print(f"No user found with id: {user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        print(f"Found user: {user.usuario}")
+        print(f"Current email_verified status: {user.email_verified}")
+        
+        # Update user's email verification status
+        user.email_verified = True
+        db.commit()
+        db.refresh(user)
+        
+        print(f"Updated email_verified status: {user.email_verified}")
+        return {"message": "Email verified successfully"}
+    except JWTError as e:
+        print(f"JWT Error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 @user_router.get("/")
 async def read_users_endpoint(db: Session = Depends(get_db)):
@@ -96,25 +199,49 @@ async def upload_avatar(id: int, file: UploadFile = File(...), db: Session = Dep
 
     return {"message": "Avatar uploaded successfully", "avatar_url": avatar_url}
 
-
-
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 @user_router.post("/login")
 def login(request: LoginRequest, db: Session = Depends(get_db)):
     email, password = request.email, request.password
+    print(f"Attempting login for email: {email}")
+    
     user = get_user_by_email(db, email)
-    if not user or not verify_password(password, user.password):
+    if not user:
+        print(f"No user found with email: {email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    # Create JWT token
-    access_token = create_access_token(data={"user_id": user.id})
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    print(f"User found: {user.usuario}")
+    print(f"Email verified: {user.email_verified}")
+    
+    if not verify_password(password, user.password):
+        print("Password verification failed")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not user.email_verified:
+        print("Email not verified")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Please verify your email before logging in",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    print("Login successful")
+    # Create JWT token with user type
+    access_token = create_access_token(data={"user_id": user.id, "is_student": user.ehaluno})
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "is_student": user.ehaluno
+    }

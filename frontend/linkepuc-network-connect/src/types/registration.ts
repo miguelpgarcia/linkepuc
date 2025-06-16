@@ -1,4 +1,3 @@
-
 export type UserRole = "student" | "professor" | "other";
 
 export type MainObjective = 
@@ -14,12 +13,13 @@ export type Interest = {
   subInterests: string[];
 };
 
-export type RegistrationData = {
+export interface RegistrationData {
   fullName: string;
   email: string;
+  password: string;
   role: UserRole;
   course: string;
   currentPeriod: string;
   mainObjective: MainObjective;
-  interests: string[];
-};
+  interests: number[];
+}

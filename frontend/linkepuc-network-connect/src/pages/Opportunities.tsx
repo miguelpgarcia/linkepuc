@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 import { RemainingHoursCredits } from "@/components/opportunity/RemainingHoursCredits";
 import { BenefitsFilter } from "@/components/opportunity/BenefitsFilter";
 import { apiFetch } from "@/apiFetch";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Opportunities() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,58 +22,47 @@ export default function Opportunities() {
   const [showRecommended, setShowRecommended] = useState(true);
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [opportunityTypes, setOpportunityTypes] = useState<{ id: number; value: string; label: string; color: string }[]>([]);
-  const [departments, setDepartments] = useState<string[]>([]);
 
-  useEffect(() => {
-    async function fetchOpportunities() {
-      try {
-        const response = await apiFetch("http://localhost:8000/vagas/");
-        const data = await response.json();
-        console.log("Fetched opportunities:", data);
-        const mappedData = mapBackendToFrontendOpportunities(data, opportunityTypes);
-        setOpportunities(mappedData);
-      } catch (error) {
-        console.error("Error fetching opportunities:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
+  // Fetch opportunities with React Query
+  const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery({
+    queryKey: ['opportunities'],
+    queryFn: async () => {
+      const response = await apiFetch("http://localhost:8000/vagas/");
+      const data = await response.json();
+      return mapBackendToFrontendOpportunities(data, opportunityTypes);
+    },
+    staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Cache is kept for 30 minutes
+  });
 
-    fetchOpportunities();
-  }, []);
+  // Fetch filters with React Query
+  const { data: filtersData } = useQuery({
+    queryKey: ['filters'],
+    queryFn: async () => {
+      const [typesResponse, departmentsResponse] = await Promise.all([
+        apiFetch("http://localhost:8000/vagas/tipo"),
+        apiFetch("http://localhost:8000/departamentos"),
+      ]);
 
-  useEffect(() => {
-    async function fetchFilters() {
-      try {
-        const [typesResponse, departmentsResponse] = await Promise.all([
-          apiFetch("http://localhost:8000/vagas/tipo"),
-          apiFetch("http://localhost:8000/departamentos"),
-        ]);
+      const typesData = await typesResponse.json();
+      const departmentsData = await departmentsResponse.json();
 
-        const typesData = await typesResponse.json();
-        const departmentsData = await departmentsResponse.json();
-
-        const formattedTypes = typesData.map((type: { id: number; nome: string }) => ({
+      return {
+        types: typesData.map((type: { id: number; nome: string }) => ({
           id: type.id,
           value: type.id.toString(),
           label: type.nome,
           color: "bg-blue-100 text-blue-800",
-        }));
+        })),
+        departments: ["Todos os Departamentos", ...departmentsData.map((dept: { id: string; name: string }) => dept.name)],
+      };
+    },
+    staleTime: 30 * 60 * 1000, // Data stays fresh for 30 minutes
+    gcTime: 24 * 60 * 60 * 1000, // Cache is kept for 24 hours
+  });
 
-        const formattedDepartments = departmentsData.map((dept: { id: string; name: string }) => dept.name);
-
-        setOpportunityTypes(formattedTypes);
-        setDepartments(["Todos os Departamentos", ...formattedDepartments]);
-      } catch (error) {
-        console.error("Error fetching filters:", error);
-      }
-    }
-
-    fetchFilters();
-  }, []);
+  const opportunityTypes = filtersData?.types || [];
+  const departments = filtersData?.departments || [];
 
   // Mock data for complementary hours
   const hasUploadedHistory = true;
@@ -101,6 +91,7 @@ export default function Opportunities() {
       setSelectedBenefits([...selectedBenefits, benefit]);
     }
   };
+
   const filteredOpportunities = opportunities.filter((opp) => {
     const matchesType = selectedTypes.length === 0 || selectedTypes.includes(opp.tipo?.id);
     const matchesSearch =
@@ -119,6 +110,7 @@ export default function Opportunities() {
 
     return matchesType && matchesSearch && matchesDepartment && matchesBenefits;
   });
+
   // Simulating recommended opportunities based on user interests
   const recommendedOpportunities = showRecommended
     ? opportunities.filter(
@@ -129,8 +121,15 @@ export default function Opportunities() {
       )
     : [];
 
-  if (loading) {
-    return <div>Loading...</div>;
+  if (isLoadingOpportunities) {
+    return (
+      <div className="min-h-screen bg-muted/20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando oportunidades...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

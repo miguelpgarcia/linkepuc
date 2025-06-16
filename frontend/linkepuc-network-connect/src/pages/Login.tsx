@@ -25,11 +25,18 @@ export default function Login() {
       });
 
       if (!response.ok) {
-        throw new Error("Credenciais inválidas");
+        throw new Error("Credenciais inválidas ou email não verificado");
       }
 
       const data = await response.json();
-      localStorage.setItem("token", data.access_token); // Armazena o token JWT
+      
+      // Check if user is a student
+      if (!data.is_student) {
+        throw new Error("Esta conta não tem permissão de aluno");
+      }
+
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("isStudent", "true");
 
       toast({
         title: "Login realizado com sucesso!",
@@ -37,7 +44,7 @@ export default function Login() {
       });
 
       setTimeout(() => {
-        window.location.href = "/"; // Redireciona para a página inicial
+        window.location.href = "/";
       }, 1500);
     } catch (error) {
       toast({

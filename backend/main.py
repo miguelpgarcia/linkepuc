@@ -7,7 +7,9 @@ from controllers.interesse_usuario_controller import interesse_usuario_router
 from controllers.publicacao_controller import publicacao_router
 from controllers.department_controller import departamento_router
 from controllers.historico_controller import historico_router
+from controllers.mensagem_controller import mensagem_router
 from models.base import Base, engine
+from controllers.candidato_vaga_controller import candidato_vaga_router
 
 # Initialize database
 Base.metadata.create_all(bind=engine)
@@ -18,7 +20,7 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this in production
+    allow_origins=["http://localhost:5173", "http://localhost:8080"],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,10 +34,12 @@ app.include_router(interesse_usuario_router, prefix="/interesse-usuario", tags=[
 app.include_router(publicacao_router, prefix="/publicacoes", tags=["Publicacoes"])
 app.include_router(departamento_router, prefix="/departamentos", tags=["Departamentos"])
 app.include_router(historico_router, prefix="/historicos", tags=["Historicos"])
+app.include_router(mensagem_router, prefix="/mensagens", tags=["Mensagens"])
+app.include_router(candidato_vaga_router, prefix="/api/candidaturas", tags=["candidaturas"])
 
 @app.get("/")
 async def hello_world():
-    return {"message": "Hello, World!"}
+    return {"message": "Welcome to LinkePuc API"}
 
 if __name__ == "__main__":
     import uvicorn

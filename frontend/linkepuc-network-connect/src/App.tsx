@@ -20,9 +20,9 @@ import ProfessorOpportunityDetail from "./pages/ProfessorOpportunityDetail";
 import ProfessorLanding from "./pages/ProfessorLanding";
 import ProfessorLogin from "./pages/ProfessorLogin";
 import ProfessorRegister from "./pages/ProfessorRegister";
-import ProfessorDashboard from "./pages/ProfessorDashboard";
 import ProfessorMessages from "./pages/ProfessorMessages";
 import ProfessorNotifications from "./pages/ProfessorNotifications";
+import VerifyEmail from "./pages/VerifyEmail";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +39,7 @@ const App = () => (
           <Route
             path="/profile"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireStudent>
                 <Profile />
               </ProtectedRoute>
             }
@@ -47,7 +47,7 @@ const App = () => (
           <Route
             path="/opportunities"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireStudent>
                 <Opportunities />
               </ProtectedRoute>
             }
@@ -55,7 +55,7 @@ const App = () => (
           <Route
             path="/opportunities/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireStudent>
                 <OpportunityDetail />
               </ProtectedRoute>
             }
@@ -63,7 +63,7 @@ const App = () => (
           <Route
             path="/network"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireStudent>
                 <Network />
               </ProtectedRoute>
             }
@@ -71,7 +71,7 @@ const App = () => (
           <Route
             path="/messages"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireStudent>
                 <Messages />
               </ProtectedRoute>
             }
@@ -79,7 +79,7 @@ const App = () => (
           <Route
             path="/notifications"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireStudent>
                 <Notifications />
               </ProtectedRoute>
             }
@@ -87,12 +87,47 @@ const App = () => (
           <Route path="/professor" element={<ProfessorLanding />} />
           <Route path="/professor/login" element={<ProfessorLogin />} />
           <Route path="/professor/register" element={<ProfessorRegister />} />
-          <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
-          <Route path="/professor/opportunities" element={<ProfessorOpportunities />} />
-          <Route path="/professor/opportunities/new" element={<NewOpportunity />} />
-          <Route path="/professor/opportunities/:id" element={<ProfessorOpportunityDetail />} />
-          <Route path="/professor/messages" element={<ProfessorMessages />} />
-          <Route path="/professor/notifications" element={<ProfessorNotifications />} />
+          <Route
+            path="/professor/opportunities"
+            element={
+              <ProtectedRoute requireProfessor>
+                <ProfessorOpportunities />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/professor/opportunities/new"
+            element={
+              <ProtectedRoute requireProfessor>
+                <NewOpportunity />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/professor/opportunities/:id"
+            element={
+              <ProtectedRoute requireProfessor>
+                <ProfessorOpportunityDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/professor/messages"
+            element={
+              <ProtectedRoute requireProfessor>
+                <ProfessorMessages />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/professor/notifications"
+            element={
+              <ProtectedRoute requireProfessor>
+                <ProfessorNotifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

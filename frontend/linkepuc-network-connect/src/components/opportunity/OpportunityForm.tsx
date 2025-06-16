@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
@@ -23,18 +23,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { formSchema, fetchOpportunityTypes, fetchDepartments, OpportunityFormValues } from "./opportunityFormSchema";
+import { formSchema, OpportunityFormValues } from "./opportunityFormSchema";
 import { BenefitSelector } from "./BenefitSelector";
 import { InterestsSelector } from "./InterestsSelector";
 import { apiFetch } from "@/apiFetch";
+import { useOpportunityFormData } from "@/hooks/use-opportunity-form-data";
+import { Loader2 } from "lucide-react";
 
 export function OpportunityForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [opportunityTypes, setOpportunityTypes] = useState<{ value: string; label: string }[]>([]);
-  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const { opportunityTypes, departments, isLoading } = useOpportunityFormData();
 
   const form = useForm<OpportunityFormValues>({
     resolver: zodResolver(formSchema),
@@ -51,11 +52,6 @@ export function OpportunityForm() {
       horas_complementares: "",
     },
   });
-
-  useEffect(() => {
-    fetchOpportunityTypes().then(setOpportunityTypes);
-    fetchDepartments().then(setDepartments);
-  }, []);
 
   const handleBenefitChange = (checked: boolean, id: string) => {
     setSelectedBenefits(
@@ -83,7 +79,6 @@ export function OpportunityForm() {
       titulo: values.title,
       descricao: values.description,
       prazo: "2024-12-31", // Example deadline
-      autor_id: 1, // Hardcoded for now
       interesses: selectedInterests.map(Number), // Convert interests to numbers
       location_id: locationId,
       department_id: department ? department.id : undefined,
@@ -113,7 +108,7 @@ export function OpportunityForm() {
         description: "Sua oportunidade foi publicada e já está disponível.",
       });
 
-      navigate("/opportunities");
+      navigate("/professor/opportunities");
     } catch (error) {
       console.error("Error creating vaga:", error);
       toast({
@@ -122,6 +117,14 @@ export function OpportunityForm() {
         variant: "destructive",
       });
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (

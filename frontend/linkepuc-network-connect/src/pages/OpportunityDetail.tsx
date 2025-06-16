@@ -3,16 +3,26 @@ import { OpportunityDetailHeader } from "@/components/opportunity/OpportunityDet
 import { OpportunityDescription } from "@/components/opportunity/OpportunityDescription";
 import { OpportunityRequirements } from "@/components/opportunity/OpportunityRequirements";
 import { ProfessorProfile } from "@/components/opportunity/ProfessorProfile";
+import { OpportunityLink } from "@/components/opportunity/OpportunityLink";
 import { Button } from "@/components/ui/button";
 import { OpportunityInterests } from "@/components/professor/OpportunityInterests";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOpportunity } from "@/hooks/use-opportunity";
 import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function OpportunityDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { opportunity, isLoading, error } = useOpportunity(id ?? "");
+
+  // Debug logs
+  console.log("Opportunity data:", opportunity);
+  console.log("Link vaga:", opportunity?.link_vaga);
+  console.log("Link vaga type:", typeof opportunity?.link_vaga);
+  console.log("Link vaga length:", opportunity?.link_vaga?.length);
 
   if (isLoading) {
     return (
@@ -54,23 +64,58 @@ export default function OpportunityDetail() {
               {opportunity.interesses && opportunity.interesses.length > 0 && (
                 <OpportunityInterests interests={opportunity.interesses.map(i => i.nome)} />
               )}
-              <OpportunityRequirements requirements={[]} />
             </div>
             
             <div className="space-y-6">
-              <ProfessorProfile professor={{
-                id: opportunity.autor.id.toString(),
-                name: opportunity.autor.usuario,
-                avatar: opportunity.autor.avatar,
-                subjects: [],
-                otherOpportunities: 0
-              }} />
+              {opportunity.professor ? (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Professor Responsável
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-start gap-3">
+                        <div>
+                          <h3 className="font-semibold">{opportunity.professor}</h3>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Autor da Publicação
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-start gap-3">
+                        <Avatar>
+                          <AvatarImage src={opportunity.autor.avatar} />
+                          <AvatarFallback>{opportunity.autor.usuario[0]}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold">{opportunity.autor.usuario}</h3>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <ProfessorProfile professor={{
+                  id: opportunity.autor.id.toString(),
+                  name: opportunity.autor.usuario,
+                  avatar: opportunity.autor.avatar,
+                  subjects: [],
+                  otherOpportunities: 0
+                }} />
+              )}
               
-              <Button className="w-full" size="lg" asChild>
-                <a href={opportunity.link_vaga} target="_blank" rel="noopener noreferrer">
-                  Me candidatar
-                </a>
-              </Button>
+              <OpportunityLink link={opportunity.link_vaga} />
             </div>
           </div>
         </div>

@@ -13,7 +13,14 @@ class User(Base):
     ehaluno = Column(Boolean, nullable=False)
     criado_em = Column(TIMESTAMP, default=datetime.now)
     avatar = Column(String, nullable=True)
+    email_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
+    verification_token_expires = Column(TIMESTAMP, nullable=True)
     interesses = relationship("InteresseUsuario", back_populates="usuario")
 
     vagas = relationship("Vagas", back_populates="autor")  # Add back-reference to Vagas
     historicos = relationship("Historico", back_populates="user")  # Add back-reference to Historico
+    candidaturas = relationship("CandidatoVaga", back_populates="candidato")  # Add relationship to candidaturas
+
+    mensagens_enviadas = relationship("Mensagem", foreign_keys="[Mensagem.remetente_id]", back_populates="remetente")
+    mensagens_recebidas = relationship("Mensagem", foreign_keys="[Mensagem.destinatario_id]", back_populates="destinatario")

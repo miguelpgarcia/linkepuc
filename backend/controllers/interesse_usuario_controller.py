@@ -7,7 +7,7 @@ from repositories.interesse_usuario_repository import (
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
-from dependecies import get_current_user_id
+from dependecies import get_current_user
 
 
 
@@ -32,7 +32,7 @@ async def get_interesses_for_user(usuario_id: int, db: Session = Depends(get_db)
     return interesses
 
 @interesse_usuario_router.post("/")
-async def create_interesse_usuario_relation(data: InteresseUsuarioCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+async def create_interesse_usuario_relation(data: InteresseUsuarioCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
     return create_interesse_usuario(db, data.interesse_id, data.usuario_id)
 
 @interesse_usuario_router.delete("/{id}")

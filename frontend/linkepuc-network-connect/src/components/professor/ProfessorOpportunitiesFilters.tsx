@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
-import { apiFetch } from "@/apiFetch";
+import { useOpportunityFilters } from "@/hooks/use-opportunity-filters";
 
 const currentYear = new Date().getFullYear();
 const years = [currentYear, currentYear - 1, currentYear - 2].map((year) => year.toString());
@@ -30,20 +30,7 @@ interface FiltersProps {
 
 export function ProfessorOpportunitiesFilters({ filters, onFilterChange }: FiltersProps) {
   const [localFilters, setLocalFilters] = useState(filters);
-  const [opportunityTypes, setOpportunityTypes] = useState<{ value: string; label: string }[]>([]);
-
-  useEffect(() => {
-    async function loadOpportunityTypes() {
-      const response = await apiFetch("http://localhost:8000/vagas/tipo");
-      const types = await response.json();
-      const formattedTypes = types.map((type: { id: string; name: string }) => ({
-        value: type.id,
-        label: type.name,
-      }));
-      setOpportunityTypes(formattedTypes);
-    }
-    loadOpportunityTypes();
-  }, []);
+  const { types: opportunityTypes } = useOpportunityFilters();
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     const newFilters = { ...localFilters, [key]: value };
@@ -82,8 +69,8 @@ export function ProfessorOpportunitiesFilters({ filters, onFilterChange }: Filte
             <SelectContent>
               <SelectItem value="">Todos os tipos</SelectItem>
               {opportunityTypes.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
+                <SelectItem key={type.id} value={type.id.toString()}>
+                  {type.nome}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProfessorHeader } from "@/components/layout/ProfessorHeader";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,64 +12,12 @@ import {
 import { Link } from "react-router-dom";
 import { ProfessorOpportunitiesTable } from "@/components/professor/ProfessorOpportunitiesTable";
 import { ProfessorOpportunitiesFilters } from "@/components/professor/ProfessorOpportunitiesFilters";
-import { OpportunityType } from "@/components/opportunity/OpportunityCard";
-
-export interface ProfessorOpportunity {
-  id: string;
-  title: string;
-  type: OpportunityType;
-  status: "aguardando" | "em_analise" | "finalizada" | "encerrada";
-  candidates: number;
-  createdAt: string;
-}
-
-// Sample data for professor opportunities
-const sampleProfessorOpportunities: ProfessorOpportunity[] = [
-  {
-    id: "1",
-    title: "Monitoria de Álgebra",
-    type: "monitoria",
-    status: "aguardando",
-    candidates: 12,
-    createdAt: "2025-04-20"
-  },
-  {
-    id: "2",
-    title: "IC em Redes Neurais",
-    type: "iniciacao_cientifica",
-    status: "em_analise",
-    candidates: 8,
-    createdAt: "2025-03-10"
-  },
-  {
-    id: "3",
-    title: "Estágio em Laboratório de Computação",
-    type: "estagio",
-    status: "finalizada",
-    candidates: 5,
-    createdAt: "2025-02-15"
-  },
-  {
-    id: "4",
-    title: "Bolsa de Pesquisa em Engenharia de Software",
-    type: "bolsa",
-    status: "encerrada",
-    candidates: 15,
-    createdAt: "2025-01-25"
-  },
-  {
-    id: "5",
-    title: "Monitoria de Cálculo",
-    type: "monitoria",
-    status: "aguardando",
-    candidates: 10,
-    createdAt: "2025-04-10"
-  }
-];
+import { useProfessorOpportunities, ProfessorOpportunity } from "@/hooks/use-professor-opportunities";
+import { Loader2 } from "lucide-react";
 
 export default function ProfessorOpportunities() {
-  const [opportunities, setOpportunities] = useState<ProfessorOpportunity[]>(sampleProfessorOpportunities);
-  const [filteredOpportunities, setFilteredOpportunities] = useState<ProfessorOpportunity[]>(sampleProfessorOpportunities);
+  const { opportunities, isLoading, error } = useProfessorOpportunities();
+  const [filteredOpportunities, setFilteredOpportunities] = useState<ProfessorOpportunity[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<keyof ProfessorOpportunity | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -80,6 +27,13 @@ export default function ProfessorOpportunities() {
     year: "",
     candidates: ""
   });
+
+  // Update filtered opportunities when opportunities data changes
+  useEffect(() => {
+    if (opportunities) {
+      setFilteredOpportunities(opportunities);
+    }
+  }, [opportunities]);
 
   const toggleFilters = () => {
     setShowFilters(!showFilters);
@@ -107,11 +61,10 @@ export default function ProfessorOpportunities() {
   const handleFilterChange = (newFilters: typeof filters) => {
     setFilters(newFilters);
     
-    // Apply filters
-    let filtered = [...opportunities];
+    let filtered = opportunities || [];
     
     if (newFilters.type) {
-      filtered = filtered.filter(opp => opp.type === newFilters.type);
+      filtered = filtered.filter(opp => opp.tipo.nome === newFilters.type);
     }
     
     if (newFilters.status) {
@@ -119,10 +72,7 @@ export default function ProfessorOpportunities() {
     }
     
     if (newFilters.year) {
-      filtered = filtered.filter(opp => {
-        const oppYear = new Date(opp.createdAt).getFullYear().toString();
-        return oppYear === newFilters.year;
-      });
+      filtered = filtered.filter(opp => opp.criado_em.startsWith(newFilters.year));
     }
     
     if (newFilters.candidates) {
@@ -132,6 +82,32 @@ export default function ProfessorOpportunities() {
     
     setFilteredOpportunities(filtered);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/20">
+        <ProfessorHeader />
+        <main className="container py-6">
+          <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-muted/20">
+        <ProfessorHeader />
+        <main className="container py-6">
+          <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+            <p className="text-destructive">Erro ao carregar oportunidades</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/20">

@@ -5,8 +5,7 @@ uv sync
 uv run python .\backend\main.py
 
 
-npx create-react-app landing-page
-cd linkepuc
-npm start
+cd .\frontend\linkepuc-network-connect\cd linkepuc
+npm run dev
 
 (linkeenv) PS C:\Users\Miguel\Documents\tcc\linkepuc\backend> uv run python -m services.fetch_cbctc_content

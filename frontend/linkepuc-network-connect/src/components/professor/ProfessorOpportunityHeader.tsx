@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Calendar, Clock, Award } from "lucide-react";
@@ -20,6 +19,7 @@ export function ProfessorOpportunityHeader({ opportunity }: ProfessorOpportunity
     em_analise: "Em análise",
     finalizada: "Finalizada",
     encerrada: "Encerrada",
+    em_andamento: "Em andamento"
   };
 
   const statusColors: Record<string, string> = {
@@ -27,6 +27,7 @@ export function ProfessorOpportunityHeader({ opportunity }: ProfessorOpportunity
     em_analise: "bg-blue-100 text-blue-800",
     finalizada: "bg-green-100 text-green-800",
     encerrada: "bg-gray-100 text-gray-800",
+    em_andamento: "bg-purple-100 text-purple-800"
   };
 
   const typeLabels: Record<string, string> = {

@@ -20,12 +20,13 @@ class Vagas(Base):
     criado_em = Column(TIMESTAMP, default=datetime.now)
     location_id = Column(Integer, ForeignKey("location.id"), nullable=False)
     department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
-    professor = Column(Text, nullable=False)
-    link_vaga = Column(Text, nullable=False)
-
+    professor = Column(Text, nullable=True)  # Changed to nullable
+    link_vaga = Column(Text, nullable=True)  # Changed to nullable
+    status = Column(String, nullable=False, default="em_andamento")  # Status of the vaga itself
 
     autor = relationship("User")
     tipo = relationship("Tipo")  # Relationship with Tipo table
     interesses = relationship("InteresseVaga", back_populates="vaga")
     location = relationship("Location")
     department = relationship("Departamento")  # Add department relationship
+    candidatos = relationship("CandidatoVaga", back_populates="vaga")  # Add relationship to candidatos

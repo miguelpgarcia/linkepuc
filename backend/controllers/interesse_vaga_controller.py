@@ -8,7 +8,7 @@ from repositories.interesse_vaga_repository import (
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
-from dependecies import get_current_user_id
+from dependecies import get_current_user
 
 
 interesse_vaga_router = APIRouter()

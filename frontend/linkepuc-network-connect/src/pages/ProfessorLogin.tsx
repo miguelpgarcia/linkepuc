@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,24 +13,48 @@ export default function ProfessorLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simular o login (em uma implementação real, isso chamaria uma API)
-    setTimeout(() => {
-      setIsLoading(false);
-      // Mostre o toast de sucesso
+    try {
+      const response = await fetch("http://localhost:8000/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Credenciais inválidas ou email não verificado");
+      }
+
+      const data = await response.json();
+      
+      // Check if user is a professor
+      if (data.is_student) {
+        throw new Error("Esta conta não tem permissão de professor");
+      }
+
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("isStudent", "false");
+
       toast({
         title: "Login realizado com sucesso!",
         description: "Redirecionando para o espaço do professor...",
       });
       
-      // Redirecione após um curto atraso
       setTimeout(() => {
         window.location.href = "/professor/opportunities";
       }, 1500);
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Erro ao realizar login",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

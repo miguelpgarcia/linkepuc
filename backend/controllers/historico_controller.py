@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
-from dependecies import get_current_user_id
+from dependecies import get_current_user
 from models.base import SessionLocal
 
 from repositories.historico_repository import create_historico, get_historico_by_user, has_historico, delete_historico_by_user
@@ -72,7 +72,7 @@ def process_historico_pdf(file: UploadFile) -> list[dict]:
     return data
 
 @historico_router.post("/upload")
-async def upload_historico(file: UploadFile = File(...), user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+async def upload_historico(file: UploadFile = File(...), user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Upload and process a historico escolar PDF.
     """
@@ -87,7 +87,7 @@ async def upload_historico(file: UploadFile = File(...), user_id: int = Depends(
     return {"message": "Historico uploaded and processed successfully."}
 
 @historico_router.get("/")
-async def get_user_historico(user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+async def get_user_historico(user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Retrieve the historico for the authenticated user.
     """

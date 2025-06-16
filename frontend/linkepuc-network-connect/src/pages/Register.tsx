@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,40 +63,6 @@ const PERIODS = [
   "2018.1"
 ];
 
-const INTERESTS = [
-  {
-    category: "Tecnologia",
-    subInterests: [
-      "Programação Frontend",
-      "Desenvolvimento Backend",
-      "Mobile",
-      "IA/Machine Learning",
-      "Dados"
-    ]
-  },
-  {
-    category: "Engenharia",
-    subInterests: [
-      "Cálculo",
-      "Física",
-      "Estruturas",
-      "Lógica",
-      "Automação"
-    ]
-  },
-  {
-    category: "Comunicação",
-    subInterests: [
-      "Redação",
-      "Línguas",
-      "Oratória",
-      "Documentação",
-      "Artigos"
-    ]
-  },
-  // ... outros interesses principais
-];
-
 const OBJECTIVES: { value: MainObjective; label: string }[] = [
   { value: "mentoring", label: "Encontrar vagas de monitoria" },
   { value: "academic_projects", label: "Participar de projetos acadêmicos (IC, TCC, pesquisa)" },
@@ -109,9 +74,11 @@ const OBJECTIVES: { value: MainObjective; label: string }[] = [
 
 export default function Register() {
   const [step, setStep] = useState(1);
+  const [availableInterests, setAvailableInterests] = useState<{ id: number; nome: string }[]>([]);
   const [formData, setFormData] = useState<RegistrationData>({
     fullName: "",
     email: "",
+    password: "",
     role: "student",
     course: "",
     currentPeriod: "",
@@ -121,12 +88,45 @@ export default function Register() {
   
   const { toast } = useToast();
 
+  // Fetch available interests from the backend
+  useEffect(() => {
+    const fetchInterests = async () => {
+      try {
+        console.log("Attempting to fetch interests...");
+        const response = await fetch("http://localhost:8000/interesses/");
+        console.log("Response status:", response.status);
+        console.log("Response headers:", response.headers);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch interests: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Received interests:", data);
+        setAvailableInterests(data);
+      } catch (error) {
+        console.error("Detailed error:", error);
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+        
+        toast({
+          title: "Erro ao carregar interesses",
+          description: "Não foi possível carregar a lista de interesses. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchInterests();
+  }, [toast]);
+
   const handleBasicInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email.endsWith("@puc-rio.br")) {
+    if (!formData.email.endsWith("puc-rio.br")) {
       toast({
         title: "Email inválido",
-        description: "Por favor, use seu email institucional (@puc-rio.br)",
+        description: "Por favor, use seu email institucional (puc-rio.br)",
         variant: "destructive",
       });
       return;
@@ -141,17 +141,78 @@ export default function Register() {
 
   const handleInterestsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Dados finais:", formData);
+  
+    try {
+      // First create the user
+      const userResponse = await fetch("http://localhost:8000/users/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuario: formData.fullName,
+          password: formData.password,
+          ehaluno: formData.role === "student",
+          email: formData.email
+        }),
+      });
+
+      if (!userResponse.ok) {
+        const errorData = await userResponse.json();
+        throw new Error(errorData.detail || "Erro ao criar usuário");
+      }
+
+      const userData = await userResponse.json();
+      console.log("User created successfully:", userData);
+      
+      // Get the names of the selected interests
+      const selectedInterests = availableInterests
+        .filter(interest => formData.interests.includes(interest.id))
+        .map(interest => interest.nome);
+      
+      // Prepare interests data
+      const interestsData = {
+        usuario_id: userData.user_id,
+        interesses: selectedInterests
+      };
+      console.log("Sending interests data:", interestsData);
+      
+      // Then add interests
+      const interestsResponse = await fetch("http://localhost:8000/interesses/usuario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(interestsData),
+      });
+
+      if (!interestsResponse.ok) {
+        const errorData = await interestsResponse.json();
+        console.error("Interests error response:", {
+          status: interestsResponse.status,
+          statusText: interestsResponse.statusText,
+          errorData,
+          requestData: interestsData
+        });
+        throw new Error(errorData.detail || `Erro ao salvar interesses: ${interestsResponse.status} ${interestsResponse.statusText}`);
+      }
+
+      const interestsResult = await interestsResponse.json();
+      console.log("Interests saved successfully:", interestsResult);
     
     toast({
       title: "Cadastro realizado com sucesso!",
-      description: "Redirecionando para a página inicial...",
+        description: "Por favor, verifique seu email para ativar sua conta.",
     });
     
-    // Simular delay antes do redirecionamento
+      // Redirect to login page
     setTimeout(() => {
-      window.location.href = "/";
+        window.location.href = "/login";
     }, 2000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Erro ao realizar cadastro",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -202,24 +263,15 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Seu papel na PUC</Label>
-                  <RadioGroup
-                    value={formData.role}
-                    onValueChange={(value: UserRole) => setFormData({...formData, role: value})}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="student" id="student" />
-                      <Label htmlFor="student">Aluno</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="professor" id="professor" />
-                      <Label htmlFor="professor">Professor</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="other" id="other" />
-                      <Label htmlFor="other">Outro</Label>
-                    </div>
-                  </RadioGroup>
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    required
+                    minLength={6}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -320,30 +372,25 @@ export default function Register() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleInterestsSubmit} className="space-y-6">
-                {INTERESTS.map((category) => (
-                  <div key={category.category} className="space-y-4">
-                    <h3 className="font-semibold text-lg">{category.category}</h3>
                     <div className="grid grid-cols-2 gap-4">
-                      {category.subInterests.map((interest) => (
-                        <div key={interest} className="flex items-center space-x-2">
+                  {availableInterests.map((interest) => (
+                    <div key={interest.id} className="flex items-center space-x-2">
                           <Checkbox
-                            id={interest}
-                            checked={formData.interests.includes(interest)}
+                        id={interest.nome}
+                        checked={formData.interests.includes(interest.id)}
                             onCheckedChange={(checked) => {
                               setFormData({
                                 ...formData,
                                 interests: checked
-                                  ? [...formData.interests, interest]
-                                  : formData.interests.filter((i) => i !== interest),
+                              ? [...formData.interests, interest.id]
+                              : formData.interests.filter((i) => i !== interest.id),
                               });
                             }}
                           />
-                          <Label htmlFor={interest}>{interest}</Label>
+                      <Label htmlFor={interest.nome}>{interest.nome}</Label>
                         </div>
                       ))}
                     </div>
-                  </div>
-                ))}
 
                 <div className="flex justify-between mt-6">
                   <Button 

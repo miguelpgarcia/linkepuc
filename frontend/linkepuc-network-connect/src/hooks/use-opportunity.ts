@@ -26,8 +26,8 @@ export interface Opportunity {
   remuneracao?: number;
   horas_complementares?: number;
   desconto?: number;
-  professor: string;
-  link_vaga: string;
+  professor?: string;
+  link_vaga?: string;
   interesses: Array<{
     id: number;
     nome: string;

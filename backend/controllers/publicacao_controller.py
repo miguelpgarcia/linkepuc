@@ -9,7 +9,7 @@ from repositories.publicacao_repository import (
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
-from dependecies import get_current_user_id
+from dependecies import get_current_user
 
 
 publicacao_router = APIRouter()
