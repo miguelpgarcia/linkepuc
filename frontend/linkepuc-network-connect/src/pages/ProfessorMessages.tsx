@@ -9,6 +9,8 @@ import { ProfessorHeader } from "@/components/layout/ProfessorHeader";
 import { useConversations } from "@/hooks/use-conversations";
 import { useMessages } from "@/hooks/use-messages";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { format, isToday, isYesterday } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
 
 export default function ProfessorMessages() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -36,10 +38,28 @@ export default function ProfessorMessages() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ destinatario_id, conteudo }) => {
+      await queryClient.cancelQueries({ queryKey: ["messages", selectedUserId] });
+      const previousMessages = queryClient.getQueryData(["messages", selectedUserId]);
+      const optimisticMsg = {
+        id: `optimistic-${Date.now()}`,
+        conteudo,
+        criado_em: new Date().toISOString(),
+        remetente_id: null,
+        destinatario_id,
+      };
+      queryClient.setQueryData(["messages", selectedUserId], (old) => (Array.isArray(old) ? [...old, optimisticMsg] : [optimisticMsg]));
+      setMessageContent("");
+      return { previousMessages };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousMessages) {
+        queryClient.setQueryData(["messages", selectedUserId], context.previousMessages);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["messages", selectedUserId] });
-      setMessageContent("");
     },
   });
 
@@ -51,6 +71,26 @@ export default function ProfessorMessages() {
       });
     }
   };
+
+  // Utility to group messages by date and return a flat list with separators
+  function getMessagesWithDateSeparators(messages) {
+    if (!messages) return [];
+    const result = [];
+    let lastDate = null;
+    messages.forEach((msg) => {
+      const msgDate = new Date(msg.criado_em);
+      const dateKey = msgDate.toDateString();
+      if (lastDate !== dateKey) {
+        let label = format(msgDate, "dd/MM/yyyy", { locale: ptBR });
+        if (isToday(msgDate)) label = "Hoje";
+        else if (isYesterday(msgDate)) label = "Ontem";
+        result.push({ type: "date", label, key: `date-${dateKey}` });
+        lastDate = dateKey;
+      }
+      result.push({ type: "msg", ...msg });
+    });
+    return result;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,32 +107,32 @@ export default function ProfessorMessages() {
                 <div>Carregando conversas...</div>
               ) : conversations && conversations.length > 0 ? (
                 conversations.map((conversation) => (
-                <div
-                  key={conversation.id}
+                  <div
+                    key={conversation.id}
                     className={`flex items-center gap-3 p-3 hover:bg-accent rounded-lg cursor-pointer ${selectedUserId === conversation.usuario_id ? "bg-accent" : ""}`}
                     onClick={() => setSelectedUserId(conversation.usuario_id)}
-                >
-                  <Avatar>
+                  >
+                    <Avatar>
                       <AvatarImage src={conversation.avatar || undefined} />
-                    <AvatarFallback>
+                      <AvatarFallback>
                         {conversation.nome.split(" ").map((n) => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
                         <p className="font-semibold truncate">{conversation.nome}</p>
-                      <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {new Date(conversation.ultima_atualizacao).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate">
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
                         {conversation.ultima_mensagem}
-                    </p>
-                  </div>
+                      </p>
+                    </div>
                     {conversation.nao_lidas > 0 && (
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                  )}
-                </div>
+                      <div className="w-2 h-2 bg-primary rounded-full" />
+                    )}
+                  </div>
                 ))
               ) : (
                 <div>Nenhuma conversa encontrada.</div>
@@ -104,57 +144,70 @@ export default function ProfessorMessages() {
           <Card className="p-4 md:col-span-2 flex flex-col">
             {selectedUserId && conversations ? (
               <>
-            <div className="flex items-center gap-4 pb-4 border-b">
+                <div className="flex items-center gap-4 pb-4 border-b">
                   {(() => {
                     const selected = conversations.find(c => c.usuario_id === selectedUserId);
                     return selected ? (
                       <>
-              <Avatar>
+                        <Avatar>
                           <AvatarImage src={selected.avatar || undefined} />
                           <AvatarFallback>{selected.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-              </Avatar>
-              <div>
+                        </Avatar>
+                        <div>
                           <h2 className="font-semibold">{selected.nome}</h2>
-              </div>
+                        </div>
                       </>
                     ) : null;
                   })()}
-            </div>
-            <ScrollArea className="flex-1 h-[calc(100vh-300px)] my-4">
-              <div className="space-y-4">
+                </div>
+                <ScrollArea className="flex-1 h-[calc(100vh-300px)] my-4">
+                  <div className="space-y-4">
                     {loadingMsgs ? (
                       <div>Carregando mensagens...</div>
                     ) : messages && messages.length > 0 ? (
-                      messages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex gap-2 items-start ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "" : "justify-end"}`}
-                        >
-                          {msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? (
-                  <Avatar className="w-8 h-8">
-                              <AvatarImage src={conversations.find(c => c.usuario_id === selectedUserId)?.avatar || undefined} />
-                              <AvatarFallback>{conversations.find(c => c.usuario_id === selectedUserId)?.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                          ) : null}
-                          <div className={`rounded-lg p-3 max-w-[80%] ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "bg-accent" : "bg-primary text-primary-foreground"}`}>
-                            <p>{msg.conteudo}</p>
-                            <span className={`text-xs mt-1 block ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "text-muted-foreground" : "text-primary-foreground"}`}>
-                              {new Date(msg.criado_em).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-                      ))
+                      getMessagesWithDateSeparators(messages).map((item) => {
+                        if (item.type === "date") {
+                          return (
+                            <div key={item.key} className="flex justify-center my-2">
+                              <span className="bg-muted text-xs px-3 py-1 rounded-full text-muted-foreground font-medium">
+                                {item.label}
+                              </span>
+                            </div>
+                          );
+                        } else {
+                          const msg = item;
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex gap-2 items-start ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "" : "justify-end"}`}
+                            >
+                              {msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? (
+                                <Avatar className="w-8 h-8">
+                                  <AvatarImage src={conversations.find(c => c.usuario_id === selectedUserId)?.avatar || undefined} />
+                                  <AvatarFallback>{conversations.find(c => c.usuario_id === selectedUserId)?.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                </Avatar>
+                              ) : null}
+                              <div className={`rounded-lg p-3 max-w-[80%] ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "bg-accent" : "bg-primary text-primary-foreground"}`}>
+                                <p>{msg.conteudo}</p>
+                                <span className={`text-xs mt-1 block ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "text-muted-foreground" : "text-primary-foreground"}`}>
+                                  {new Date(msg.criado_em).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })
                     ) : (messages && messages.length === 0 && selectedUserId !== null) ? (
                       <div>Nenhuma mensagem nesta conversa.</div>
                     ) : (
                       <div></div>
                     )}
-              </div>
-            </ScrollArea>
-            <div className="flex gap-2 pt-4 border-t">
-              <Input 
-                placeholder="Digite sua mensagem..." 
-                className="flex-1"
+                  </div>
+                </ScrollArea>
+                <div className="flex gap-2 pt-4 border-t">
+                  <Input
+                    placeholder="Digite sua mensagem..."
+                    className="flex-1"
                     value={messageContent}
                     onChange={(e) => setMessageContent(e.target.value)}
                     onKeyPress={(e) => {
@@ -163,12 +216,12 @@ export default function ProfessorMessages() {
                       }
                     }}
                     disabled={sendMessageMutation.isPending || !selectedUserId}
-              />
+                  />
                   <Button onClick={handleSendMessage} disabled={sendMessageMutation.isPending || !selectedUserId || messageContent.trim() === ""}>
-                <Mail className="mr-2 h-4 w-4" />
-                Enviar
-              </Button>
-            </div>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Enviar
+                  </Button>
+                </div>
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">

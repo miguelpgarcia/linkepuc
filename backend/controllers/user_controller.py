@@ -6,12 +6,15 @@ from repositories.user_repository import (
     get_user_by_email,
     get_user,
     get_users,
+    get_user_with_interests,
     update_user,
     delete_user,
     verify_password,
+    get_user_by_verification_token,
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
+from typing import Optional
 import cloudinary
 import cloudinary.uploader
 import os
@@ -47,6 +50,7 @@ class LoginRequest(BaseModel):
 class UserUpdate(BaseModel):
     usuario: str
     ehaluno: bool
+    sobre: Optional[str] = None
 
 class VerifyEmailRequest(BaseModel):
     token: str
@@ -160,14 +164,33 @@ async def read_users_endpoint(db: Session = Depends(get_db)):
 
 @user_router.get("/{id}")
 async def read_user_endpoint(id: int, db: Session = Depends(get_db)):
-    user = get_user(db, id)
+    user = get_user_with_interests(db, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    
+    # Format the response to include interests
+    user_data = {
+        "id": user.id,
+        "usuario": user.usuario,
+        "email": user.email,
+        "ehaluno": user.ehaluno,
+        "sobre": user.sobre,
+        "avatar": user.avatar,
+        "criado_em": user.criado_em,
+        "email_verified": user.email_verified,
+        "interesses": [
+            {
+                "id": interesse_usuario.interesse.id,
+                "nome": interesse_usuario.interesse.nome
+            }
+            for interesse_usuario in user.interesses
+        ]
+    }
+    return user_data
 
 @user_router.put("/{id}")
 async def update_user_endpoint(id: int, user: UserUpdate, db: Session = Depends(get_db)):
-    updated = update_user(db, id, user.usuario, user.ehaluno)
+    updated = update_user(db, id, user.usuario, user.ehaluno, user.sobre)
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")
     return updated
@@ -198,6 +221,19 @@ async def upload_avatar(id: int, file: UploadFile = File(...), db: Session = Dep
     db.refresh(user)
 
     return {"message": "Avatar uploaded successfully", "avatar_url": avatar_url}
+
+@user_router.delete("/{id}/avatar")
+async def delete_avatar(id: int, db: Session = Depends(get_db)):
+    user = get_user(db, id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Remove the avatar URL from the database
+    user.avatar = None
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Avatar deleted successfully"}
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

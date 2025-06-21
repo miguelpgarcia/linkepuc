@@ -4,21 +4,40 @@ import { Button } from "@/components/ui/button";
 import { 
   Bell, 
   Briefcase,
-  FileText,
   LogOut,
   Menu,
   MessageSquare,
-  User,
   X
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/AuthContext";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/apiFetch";
+
+interface UserProfile {
+  id: number;
+  usuario: string;
+  avatar: string | null;
+}
 
 export function Header() {
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+
+  // Fetch current user's profile data for avatar
+  const { data: profileData } = useQuery<UserProfile>({
+    queryKey: ['header-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User ID not available');
+      const response = await apiFetch(`http://localhost:8000/users/${user.id}`);
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(prev => !prev);
@@ -28,6 +47,21 @@ export function Header() {
     logout();
     window.location.href = "/login";
   };
+
+  // Get user initials for fallback
+  const getUserInitials = () => {
+    if (!profileData?.usuario) return "U";
+    const names = profileData.usuario.split(" ");
+    if (names.length >= 2) {
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    }
+    return profileData.usuario.charAt(0).toUpperCase();
+  };
+
+  // Don't render header if user is not logged in
+  if (!user) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
@@ -50,14 +84,6 @@ export function Header() {
             <Link to="/opportunities" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
               <Briefcase size={22} />
               <span className="text-xs">Oportunidades</span>
-            </Link>
-            <Link to="/publicacoes" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <FileText size={22} />
-              <span className="text-xs">Publicações</span>
-            </Link>
-            <Link to="/network" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <User size={22} />
-              <span className="text-xs">Rede</span>
             </Link>
           </div>
         )}
@@ -83,21 +109,15 @@ export function Header() {
               <MessageSquare size={22} />
               <span className="text-xs">Mensagens</span>
             </Link>
-            <Link to="/notifications" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <Bell size={22} />
-              <span className="text-xs">Notificações</span>
-            </Link>
             <div className="border-l h-8" />
             <Link to="/profile">
               <Avatar>
-                <AvatarImage src="https://images.unsplash.com/photo-1511489731872-324d5f3f0737?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=240&q=80" />
-                <AvatarFallback>JP</AvatarFallback>
+                <AvatarImage src={profileData?.avatar || undefined} />
+                <AvatarFallback>{getUserInitials()}</AvatarFallback>
               </Avatar>
             </Link>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" asChild>
-              <Link to="/login">
-                <LogOut className="h-5 w-5" />
-              </Link>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={handleLogout}>
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         )}
@@ -105,8 +125,8 @@ export function Header() {
           <div className="flex items-center">
             <Link to="/profile" className="mr-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="https://images.unsplash.com/photo-1511489731872-324d5f3f0737?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=240&q=80" />
-                <AvatarFallback>JP</AvatarFallback>
+                <AvatarImage src={profileData?.avatar || undefined} />
+                <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
               </Avatar>
             </Link>
           </div>
@@ -126,36 +146,12 @@ export function Header() {
               <span>Oportunidades</span>
             </Link>
             <Link 
-              to="/publicacoes" 
-              className="flex items-center gap-3 text-lg" 
-              onClick={toggleMobileMenu}
-            >
-              <FileText size={24} />
-              <span>Publicações</span>
-            </Link>
-            <Link 
-              to="/network" 
-              className="flex items-center gap-3 text-lg" 
-              onClick={toggleMobileMenu}
-            >
-              <User size={24} />
-              <span>Rede</span>
-            </Link>
-            <Link 
               to="/messages" 
               className="flex items-center gap-3 text-lg" 
               onClick={toggleMobileMenu}
             >
               <MessageSquare size={24} />
               <span>Mensagens</span>
-            </Link>
-            <Link 
-              to="/notifications" 
-              className="flex items-center gap-3 text-lg" 
-              onClick={toggleMobileMenu}
-            >
-              <Bell size={24} />
-              <span>Notificações</span>
             </Link>
             <div className="border-t my-2" />
             <Link 
@@ -164,19 +160,22 @@ export function Header() {
               onClick={toggleMobileMenu}
             >
               <Avatar>
-                <AvatarImage src="https://images.unsplash.com/photo-1511489731872-324d5f3f0737?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=240&q=80" />
-                <AvatarFallback>JP</AvatarFallback>
+                <AvatarImage src={profileData?.avatar || undefined} />
+                <AvatarFallback>{getUserInitials()}</AvatarFallback>
               </Avatar>
               <span>Perfil</span>
             </Link>
-            <Link 
-              to="/login" 
-              className="flex items-center gap-3 text-lg text-destructive" 
-              onClick={toggleMobileMenu}
+            <Button 
+              variant="ghost"
+              className="flex items-center gap-3 text-lg text-destructive justify-start p-0 h-auto" 
+              onClick={() => {
+                toggleMobileMenu();
+                handleLogout();
+              }}
             >
               <LogOut size={24} />
               <span>Sair</span>
-            </Link>
+            </Button>
           </div>
         </div>
       )}

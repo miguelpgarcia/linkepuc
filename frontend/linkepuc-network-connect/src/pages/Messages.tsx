@@ -9,6 +9,8 @@ import { Header } from "@/components/layout/Header";
 import { useConversations } from "@/hooks/use-conversations";
 import { useMessages } from "@/hooks/use-messages";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { format, isToday, isYesterday } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
 
 const Messages = () => {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -16,7 +18,6 @@ const Messages = () => {
 
   const { data: conversations, isLoading: loadingConvs } = useConversations();
   const { data: messages, isLoading: loadingMsgs } = useMessages(selectedUserId ?? 0);
-  console.log("conversations", conversations);
 
   const queryClient = useQueryClient();
 
@@ -37,11 +38,28 @@ const Messages = () => {
       }
       return res.json();
     },
-    onSuccess: () => {
-      // Invalidate queries to refetch conversations and messages after sending
+    onMutate: async ({ destinatario_id, conteudo }) => {
+      await queryClient.cancelQueries({ queryKey: ["messages", selectedUserId] });
+      const previousMessages = queryClient.getQueryData(["messages", selectedUserId]);
+      const optimisticMsg = {
+        id: `optimistic-${Date.now()}`,
+        conteudo,
+        criado_em: new Date().toISOString(),
+        remetente_id: null,
+        destinatario_id,
+      };
+      queryClient.setQueryData(["messages", selectedUserId], (old) => (Array.isArray(old) ? [...old, optimisticMsg] : [optimisticMsg]));
+      setMessageContent("");
+      return { previousMessages };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousMessages) {
+        queryClient.setQueryData(["messages", selectedUserId], context.previousMessages);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["messages", selectedUserId] });
-      setMessageContent(""); // Clear the input field
     },
   });
 
@@ -53,6 +71,26 @@ const Messages = () => {
       });
     }
   };
+
+  // Utility to group messages by date and return a flat list with separators
+  function getMessagesWithDateSeparators(messages) {
+    if (!messages) return [];
+    const result = [];
+    let lastDate = null;
+    messages.forEach((msg) => {
+      const msgDate = new Date(msg.criado_em);
+      const dateKey = msgDate.toDateString();
+      if (lastDate !== dateKey) {
+        let label = format(msgDate, "dd/MM/yyyy", { locale: ptBR });
+        if (isToday(msgDate)) label = "Hoje";
+        else if (isYesterday(msgDate)) label = "Ontem";
+        result.push({ type: "date", label, key: `date-${dateKey}` });
+        lastDate = dateKey;
+      }
+      result.push({ type: "msg", ...msg });
+    });
+    return result;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -127,25 +165,38 @@ const Messages = () => {
                     {loadingMsgs ? (
                       <div>Carregando mensagens...</div>
                     ) : messages && messages.length > 0 ? (
-                      messages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex gap-2 items-start ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "" : "justify-end"}`}
-                        >
-                          {msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? (
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src={conversations.find(c => c.usuario_id === selectedUserId)?.avatar || undefined} />
-                              <AvatarFallback>{conversations.find(c => c.usuario_id === selectedUserId)?.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                            </Avatar>
-                          ) : null}
-                          <div className={`rounded-lg p-3 max-w-[80%] ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "bg-accent" : "bg-primary text-primary-foreground"}`}>
-                            <p>{msg.conteudo}</p>
-                            <span className={`text-xs mt-1 block ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "text-muted-foreground" : "text-primary-foreground"}`}>
-                              {new Date(msg.criado_em).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        </div>
-                      ))
+                      getMessagesWithDateSeparators(messages).map((item) => {
+                        if (item.type === "date") {
+                          return (
+                            <div key={item.key} className="flex justify-center my-2">
+                              <span className="bg-muted text-xs px-3 py-1 rounded-full text-muted-foreground font-medium">
+                                {item.label}
+                              </span>
+                            </div>
+                          );
+                        } else {
+                          const msg = item;
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex gap-2 items-start ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "" : "justify-end"}`}
+                            >
+                              {msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? (
+                                <Avatar className="w-8 h-8">
+                                  <AvatarImage src={conversations.find(c => c.usuario_id === selectedUserId)?.avatar || undefined} />
+                                  <AvatarFallback>{conversations.find(c => c.usuario_id === selectedUserId)?.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                </Avatar>
+                              ) : null}
+                              <div className={`rounded-lg p-3 max-w-[80%] ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "bg-accent" : "bg-primary text-primary-foreground"}`}>
+                                <p>{msg.conteudo}</p>
+                                <span className={`text-xs mt-1 block ${msg.remetente_id === (conversations.find(c => c.usuario_id === selectedUserId)?.usuario_id) ? "text-muted-foreground" : "text-primary-foreground"}`}>
+                                  {new Date(msg.criado_em).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })
                     ) : (messages && messages.length === 0 && selectedUserId !== null) ? (
                       <div>Nenhuma mensagem nesta conversa.</div>
                     ) : (

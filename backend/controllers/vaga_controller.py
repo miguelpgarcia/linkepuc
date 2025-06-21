@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from repositories.vaga_repository import (
     create_vaga,
@@ -8,6 +8,7 @@ from repositories.vaga_repository import (
     delete_vaga,
     get_tipos_vaga,
     get_vagas_by_professor,
+    get_vagas_cached,
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
@@ -49,11 +50,14 @@ async def create_vaga_endpoint(vaga: VagaCreate, db: Session = Depends(get_db), 
     print("Creating vaga")
     return create_vaga(db, vaga.titulo, vaga.descricao, vaga.prazo, current_user.id, vaga.interesses, vaga.location_id, vaga.department_id, vaga.remuneracao, vaga.horas_complementares, vaga.desconto, vaga.tipo_id)
 
-@vaga_router.get("/",response_model=List[VagaResponse])
-async def read_vagas_endpoint(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
-    print("Fetching vagas")
-    print(user_id)
-    return get_vagas(db)
+@vaga_router.get("/", response_model=List[VagaResponse])
+async def read_vagas_endpoint(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100)
+):
+    return get_vagas_cached(skip=skip, limit=limit)
 
 @vaga_router.get("/new")
 async def get_new_vaga_data():

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean
+from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean, Text
 from sqlalchemy.orm import relationship
 from .interesse_usuario import InteresseUsuario
 from datetime import datetime
@@ -11,6 +11,7 @@ class User(Base):
     usuario = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     ehaluno = Column(Boolean, nullable=False)
+    sobre = Column(Text, nullable=True)
     criado_em = Column(TIMESTAMP, default=datetime.now)
     avatar = Column(String, nullable=True)
     email_verified = Column(Boolean, default=False)

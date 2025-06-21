@@ -4,6 +4,8 @@ from sqlalchemy.orm import joinedload
 from models.interesse_vaga import InteresseVaga
 from sqlalchemy import func
 from models.candidato_vaga import CandidatoVaga
+from functools import lru_cache
+from models.base import SessionLocal
 
 
 
@@ -35,12 +37,29 @@ def get_vaga(db: Session, vaga_id: int):
         joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
     ).filter(Vagas.id == vaga_id).first()
 
-def get_vagas(db: Session):
-    return db.query(Vagas).options(
-        joinedload(Vagas.autor),
-        joinedload(Vagas.tipo),
-        joinedload(Vagas.department),
-    ).all()
+@lru_cache(maxsize=128)
+def get_vagas_cached(skip: int = 0, limit: int = 20):
+    db = SessionLocal()
+    print("Skip: ", skip)
+    print("Limit: ", limit)
+    try:
+        # First get total count for pagination info
+        total = db.query(Vagas).count()
+        
+        # Then get paginated results with all needed relationships
+        result = db.query(Vagas).options(
+            joinedload(Vagas.autor),
+            joinedload(Vagas.tipo),
+            joinedload(Vagas.department),
+            joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
+        ).order_by(Vagas.criado_em.desc()).offset(skip).limit(limit).all()
+        
+        return result
+    finally:
+        db.close()
+
+def get_vagas(db: Session, skip: int = 0, limit: int = 20):
+    return get_vagas_cached(skip=skip, limit=limit)
 
 def update_vaga(db: Session, vaga_id: int, titulo: str, descricao: str, prazo: str):
     vaga = db.query(Vagas).filter(Vagas.id == vaga_id).first()

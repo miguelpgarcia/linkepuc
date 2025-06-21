@@ -2,18 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 
 export interface Message {
   id: number;
+  conteudo: string;
+  criado_em: string;
   remetente_id: number;
   destinatario_id: number;
-  conteudo: string;
-  lida: boolean;
-  criado_em: string;
 }
 
-export function useMessages(otherUserId: number) {
+export function useMessages(userId: number) {
   return useQuery<Message[]>({
-    queryKey: ["messages", otherUserId],
+    queryKey: ["messages", userId],
     queryFn: async () => {
-      const res = await fetch(`http://localhost:8000/mensagens/conversa/${otherUserId}`, {
+      if (!userId) return [];
+      
+      const res = await fetch(`http://localhost:8000/mensagens/conversa/${userId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -21,6 +22,8 @@ export function useMessages(otherUserId: number) {
       if (!res.ok) throw new Error("Failed to fetch messages");
       return res.json();
     },
-    enabled: !!otherUserId,
+    enabled: !!userId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
-}
+} 

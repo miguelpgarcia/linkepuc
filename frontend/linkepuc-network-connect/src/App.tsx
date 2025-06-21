@@ -23,14 +23,53 @@ import ProfessorRegister from "./pages/ProfessorRegister";
 import ProfessorMessages from "./pages/ProfessorMessages";
 import ProfessorNotifications from "./pages/ProfessorNotifications";
 import VerifyEmail from "./pages/VerifyEmail";
+import { apiFetch } from "@/apiFetch";
+import { mapBackendToFrontendOpportunities } from "./pages/Opportunities";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
+
+function PrefetchData() {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Prefetch opportunities
+      queryClient.prefetchQuery({
+        queryKey: ["opportunities", 0],
+        queryFn: async () => {
+          const response = await apiFetch("http://localhost:8000/vagas/?skip=0&limit=8");
+          return response.json();
+        },
+        staleTime: 30 * 1000,
+      });
+
+      // Prefetch conversations
+      queryClient.prefetchQuery({
+        queryKey: ["conversations"],
+        queryFn: async () => {
+          const res = await fetch("http://localhost:8000/mensagens/conversas", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (!res.ok) throw new Error("Failed to fetch conversations");
+          return res.json();
+        },
+        staleTime: 30 * 1000,
+      });
+    }
+  }, [queryClient]);
+  return null;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PrefetchData />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -38,6 +77,14 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route
             path="/profile"
+            element={
+              <ProtectedRoute requireStudent>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:id"
             element={
               <ProtectedRoute requireStudent>
                 <Profile />

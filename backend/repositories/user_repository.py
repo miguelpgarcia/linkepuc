@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.user import User
+from models.interesse_usuario import InteresseUsuario
 from passlib.context import CryptContext
 from datetime import datetime
 
@@ -44,14 +45,22 @@ def get_user_by_verification_token(db: Session, token: str):
 def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
+def get_user_with_interests(db: Session, user_id: int):
+    """Get user with their interests loaded"""
+    return db.query(User).options(
+        joinedload(User.interesses).joinedload(InteresseUsuario.interesse)
+    ).filter(User.id == user_id).first()
+
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(User).offset(skip).limit(limit).all()
 
-def update_user(db: Session, user_id: int, usuario: str, ehaluno: bool):
+def update_user(db: Session, user_id: int, usuario: str, ehaluno: bool, sobre: str = None):
     db_user = get_user(db, user_id)
     if db_user:
         db_user.usuario = usuario
         db_user.ehaluno = ehaluno
+        if sobre is not None:
+            db_user.sobre = sobre
         db.commit()
         db.refresh(db_user)
     return db_user

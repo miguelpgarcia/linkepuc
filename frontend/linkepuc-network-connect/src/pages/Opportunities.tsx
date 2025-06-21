@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Filter, Search, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -15,28 +15,26 @@ import { BenefitsFilter } from "@/components/opportunity/BenefitsFilter";
 import { apiFetch } from "@/apiFetch";
 import { useQuery } from "@tanstack/react-query";
 
+interface Opportunity {
+  id: number;
+  titulo: string;
+  descricao: string;
+  // add other fields as needed
+}
+
 export default function Opportunities() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState("Todos os Departamentos");
   const [showRecommended, setShowRecommended] = useState(true);
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch opportunities with React Query
-  const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery({
-    queryKey: ['opportunities'],
-    queryFn: async () => {
-      const response = await apiFetch("http://localhost:8000/vagas/");
-      const data = await response.json();
-      return mapBackendToFrontendOpportunities(data, opportunityTypes);
-    },
-    staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes
-    gcTime: 30 * 60 * 1000, // Cache is kept for 30 minutes
-  });
+  const PAGE_SIZE = 8;
 
   // Fetch filters with React Query
-  const { data: filtersData } = useQuery({
+  const { data: filtersData, isLoading: isLoadingFilters } = useQuery({
     queryKey: ['filters'],
     queryFn: async () => {
       const [typesResponse, departmentsResponse] = await Promise.all([
@@ -57,12 +55,38 @@ export default function Opportunities() {
         departments: ["Todos os Departamentos", ...departmentsData.map((dept: { id: string; name: string }) => dept.name)],
       };
     },
-    staleTime: 30 * 60 * 1000, // Data stays fresh for 30 minutes
-    gcTime: 24 * 60 * 60 * 1000, // Cache is kept for 24 hours
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000,  // Keep unused data for 30 minutes
+  });
+
+  // Fetch opportunities with React Query
+  const { data: rawOpportunities = [], isLoading: isLoadingOpportunities } = useQuery({
+    queryKey: ['opportunities', page], // Only depend on page number
+    queryFn: async () => {
+      const response = await apiFetch(`http://localhost:8000/vagas/?skip=${page * PAGE_SIZE}&limit=${PAGE_SIZE}`);
+      const data = await response.json();
+      return data;
+    },
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep unused data for 5 minutes
+    enabled: !isLoadingFilters && !!filtersData,
   });
 
   const opportunityTypes = filtersData?.types || [];
   const departments = filtersData?.departments || [];
+
+  // Map raw opportunities to frontend shape using useMemo
+  const opportunities = useMemo(() => {
+    if (!rawOpportunities || !opportunityTypes) return [];
+    return mapBackendToFrontendOpportunities(rawOpportunities, opportunityTypes);
+  }, [rawOpportunities, opportunityTypes]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [selectedTypes, selectedDepartment, selectedBenefits, searchQuery]);
+
+  const isLoading = isLoadingFilters || isLoadingOpportunities;
 
   // Mock data for complementary hours
   const hasUploadedHistory = true;
@@ -92,36 +116,40 @@ export default function Opportunities() {
     }
   };
 
-  const filteredOpportunities = opportunities.filter((opp) => {
-    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(opp.tipo?.id);
-    const matchesSearch =
-      searchQuery === "" ||
-      (opp.title && opp.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (opp.description && opp.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesDepartment =
-      selectedDepartment === "Todos os Departamentos" ||
-      (opp.department && opp.department.name === selectedDepartment);
-    const matchesBenefits =
-      selectedBenefits.length === 0 ||
-      (opp.benefits &&
-        selectedBenefits.every(
-          (benefit) => opp.benefits && benefit in opp.benefits && opp.benefits[benefit] !== undefined
-        ));
+  const filteredOpportunities = useMemo(() => {
+    return opportunities.filter((opp) => {
+      const matchesType = selectedTypes.length === 0 || (opp.tipo && selectedTypes.includes(opp.tipo.id));
+      const matchesSearch =
+        searchQuery === "" ||
+        (opp.titulo && opp.titulo.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (opp.descricao && opp.descricao.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesDepartment =
+        selectedDepartment === "Todos os Departamentos" ||
+        (opp.department && opp.department.name === selectedDepartment);
+      const matchesBenefits =
+        selectedBenefits.length === 0 ||
+        (opp.benefits &&
+          selectedBenefits.every(
+            (benefit) => opp.benefits && benefit in opp.benefits && opp.benefits[benefit] !== undefined
+          ));
 
-    return matchesType && matchesSearch && matchesDepartment && matchesBenefits;
-  });
+      return matchesType && matchesSearch && matchesDepartment && matchesBenefits;
+    });
+  }, [opportunities, selectedTypes, searchQuery, selectedDepartment, selectedBenefits]);
 
   // Simulating recommended opportunities based on user interests
-  const recommendedOpportunities = showRecommended
-    ? opportunities.filter(
-        (opp) =>
-          opp.type === "iniciacao_cientifica" ||
-          opp.department.name.includes("Informática") ||
-          opp.title.toLowerCase().includes("algoritmo")
-      )
-    : [];
+  const recommendedOpportunities = useMemo(() => {
+    return showRecommended
+      ? opportunities.filter(
+          (opp) =>
+            (opp.tipo && opp.tipo.nome === "Iniciação Ciêntifica") ||
+            (opp.department && opp.department.name.includes("Informática")) ||
+            (opp.titulo && opp.titulo.toLowerCase().includes("algoritmo"))
+        )
+      : [];
+  }, [opportunities, showRecommended]);
 
-  if (isLoadingOpportunities) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-muted/20 flex items-center justify-center">
         <div className="text-center">
@@ -165,15 +193,15 @@ export default function Opportunities() {
 
                 <div className="space-y-2">
                   <h3 className="font-medium">Departamento</h3>
-                  <div className="space-y-1">
+                  <div className="max-h-60 overflow-y-auto space-y-1 pr-2 scrollbar-thin">
                     {departments.map((dept) => (
                       <Button
                         key={dept}
                         variant={selectedDepartment === dept ? "default" : "ghost"}
-                        className="w-full justify-start font-normal"
+                        className="w-full justify-start font-normal text-left"
                         onClick={() => setSelectedDepartment(dept)}
                       >
-                        {dept}
+                        <span className="truncate">{dept}</span>
                       </Button>
                     ))}
                   </div>
@@ -229,9 +257,32 @@ export default function Opportunities() {
 
               <TabsContent value="all">
                 {filteredOpportunities.length > 0 ? (
-                  filteredOpportunities.map((opportunity) => (
-                    <OpportunityCard key={opportunity.id} {...opportunity} />
-                  ))
+                  <>
+                    <div className="space-y-4">
+                      {filteredOpportunities.map((opportunity) => (
+                        <OpportunityCard key={opportunity.id} {...opportunity} />
+                      ))}
+                    </div>
+                    <div className="flex justify-center gap-4 mt-6">
+                      <Button 
+                        onClick={() => setPage((p) => Math.max(0, p - 1))}
+                        disabled={page === 0 || isLoading}
+                        variant="outline"
+                      >
+                        Anterior
+                      </Button>
+                      <span className="py-2">
+                        Página {page + 1}
+                      </span>
+                      <Button
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={rawOpportunities.length < PAGE_SIZE || isLoading}
+                        variant="outline"
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">
@@ -268,7 +319,7 @@ export default function Opportunities() {
   );
 }
 
-function mapBackendToFrontendOpportunities(data: any[], opportunityTypes: { id: number; value: string; label: string; color: string }[]): any[] {
+export function mapBackendToFrontendOpportunities(data: any[], opportunityTypes: { id: number; value: string; label: string; color: string }[]): any[] {
   return data.map((item) => {
     const matchedType = opportunityTypes.find((type) => type.id === item.tipo?.id);
 
