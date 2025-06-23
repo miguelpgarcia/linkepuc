@@ -54,14 +54,22 @@ async def create_vaga_endpoint(vaga: VagaCreate, db: Session = Depends(get_db), 
     print("Creating vaga")
     return create_vaga(db, vaga.titulo, vaga.descricao, vaga.prazo, current_user.id, vaga.interesses, vaga.location_id, vaga.department_id, vaga.remuneracao, vaga.horas_complementares, vaga.desconto, vaga.tipo_id)
 
-@vaga_router.get("/", response_model=List[VagaResponse])
+@vaga_router.get("/")
 async def read_vagas_endpoint(
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100)
 ):
-    return get_vagas_cached(skip=skip, limit=limit)
+    # Pass user_id to get personalized recommendations
+    result = get_vagas(db, skip=skip, limit=limit, user_id=current_user.id)
+    return {
+        "vagas": result["vagas"],
+        "total": result["total"],
+        "recommended_count": result["recommended_count"],
+        "skip": skip,
+        "limit": limit
+    }
 
 @vaga_router.get("/new")
 async def get_new_vaga_data():

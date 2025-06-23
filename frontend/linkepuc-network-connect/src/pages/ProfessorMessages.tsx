@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -8,16 +8,55 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfessorHeader } from "@/components/layout/ProfessorHeader";
 import { useConversations } from "@/hooks/use-conversations";
 import { useMessages } from "@/hooks/use-messages";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { useSearchParams } from "react-router-dom";
 
 export default function ProfessorMessages() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [messageContent, setMessageContent] = useState<string>("");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: conversations, isLoading: loadingConvs } = useConversations();
   const { data: messages, isLoading: loadingMsgs } = useMessages(selectedUserId ?? 0);
+
+  // Fetch user info when selectedUserId exists but no conversation found
+  const selectedConversation = conversations?.find(conv => conv.usuario_id === selectedUserId);
+  const needsUserInfo = selectedUserId && !selectedConversation;
+  
+  const { data: selectedUserInfo } = useQuery({
+    queryKey: ['user', selectedUserId],
+    queryFn: async () => {
+      const response = await fetch(`http://localhost:8000/users/${selectedUserId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch user info');
+      return response.json();
+    },
+    enabled: !!needsUserInfo,
+  });
+
+  // Check for userId in URL params and auto-select conversation
+  useEffect(() => {
+    const userIdParam = searchParams.get('userId');
+    if (userIdParam && conversations) {
+      const userId = parseInt(userIdParam, 10);
+      const existingConversation = conversations.find(conv => conv.usuario_id === userId);
+      
+      if (existingConversation) {
+        setSelectedUserId(userId);
+        searchParams.delete('userId');
+        setSearchParams(searchParams, { replace: true });
+      } else if (!selectedUserId) {
+        setSelectedUserId(userId);
+        searchParams.delete('userId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [conversations, searchParams, setSearchParams, selectedUserId]);
 
   const queryClient = useQueryClient();
 
@@ -142,22 +181,32 @@ export default function ProfessorMessages() {
 
           {/* Chat Area */}
           <Card className="p-4 md:col-span-2 flex flex-col">
-            {selectedUserId && conversations ? (
+            {selectedUserId ? (
               <>
                 <div className="flex items-center gap-4 pb-4 border-b">
                   {(() => {
-                    const selected = conversations.find(c => c.usuario_id === selectedUserId);
+                    const selected = selectedConversation || selectedUserInfo;
                     return selected ? (
                       <>
                         <Avatar>
                           <AvatarImage src={selected.avatar || undefined} />
-                          <AvatarFallback>{selected.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          <AvatarFallback>
+                            {(selected.nome || selected.usuario)?.split(' ').map(n => n[0]).join('') || 'U'}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h2 className="font-semibold">{selected.nome}</h2>
+                          <h2 className="font-semibold">{selected.nome || selected.usuario}</h2>
+                          {!selectedConversation && (
+                            <p className="text-sm text-muted-foreground">Nova conversa</p>
+                          )}
                         </div>
                       </>
-                    ) : null;
+                    ) : (
+                      <div className="animate-pulse flex items-center gap-4">
+                        <div className="w-10 h-10 bg-muted rounded-full"></div>
+                        <div className="h-4 bg-muted rounded w-24"></div>
+                      </div>
+                    );
                   })()}
                 </div>
                 <ScrollArea className="flex-1 h-[calc(100vh-300px)] my-4">

@@ -25,3 +25,4 @@ class User(Base):
 
     mensagens_enviadas = relationship("Mensagem", foreign_keys="[Mensagem.remetente_id]", back_populates="remetente")
     mensagens_recebidas = relationship("Mensagem", foreign_keys="[Mensagem.destinatario_id]", back_populates="destinatario")
+    recomendacoes = relationship("Recomendacao", back_populates="usuario")

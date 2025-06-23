@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from repositories.interesse_repository import (
     create_interesse,
@@ -7,10 +7,12 @@ from repositories.interesse_repository import (
     update_interesse,
     delete_interesse,
     add_user_interests,
+    update_user_interests,
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
 from dependecies import get_current_user
+from services.recommendation_service import RecommendationService
 from typing import List
 
 
@@ -67,6 +69,40 @@ async def add_interests_endpoint(request: UserInterestsRequest, db: Session = De
     try:
         add_user_interests(db, request.usuario_id, request.interesses)
         return {"message": "Interesses adicionados com sucesso"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@interesse_router.put("/usuario/{usuario_id}")
+async def update_user_interests_endpoint(
+    usuario_id: int, 
+    request: List[str], 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    # Only allow users to update their own interests
+    if usuario_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você só pode atualizar seus próprios interesses"
+        )
+    
+    try:
+        update_user_interests(db, usuario_id, request)
+        
+        # If user is a student, trigger recommendation refresh for interests strategy only
+        if current_user.ehaluno:
+            print(f"User {usuario_id} updated interests, refreshing common_interests strategy")
+            recommendation_service = RecommendationService()
+            success = recommendation_service.calculate_strategy_recommendations(db, usuario_id, "common_interests")
+            if success:
+                print(f"Successfully updated common_interests recommendations for user {usuario_id}")
+            else:
+                print(f"Failed to update common_interests recommendations for user {usuario_id}")
+        
+        return {"message": "Interesses atualizados com sucesso"}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

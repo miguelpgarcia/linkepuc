@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Edit3, Save, X, Camera, Trash2 } from "lucide-react";
+import { User, Edit3, Save, X, Camera, Trash2, MessageCircle, Edit2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
 import { useAuth } from "@/AuthContext";
 import { useState, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { InterestsEditor } from "@/components/InterestsEditor";
 
 interface UserProfile {
   id: number;
@@ -34,8 +35,10 @@ export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingInterests, setIsEditingInterests] = useState(false);
   const [editedSobre, setEditedSobre] = useState("");
   const [editedUsuario, setEditedUsuario] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -217,6 +220,27 @@ export default function Profile() {
     }
   };
 
+  const handleStartConversation = () => {
+    if (!profileData) return;
+    navigate(`/messages?userId=${profileData.id}`);
+  };
+
+  const handleInterestsSave = (newInterests: Array<{id: number; nome: string}>) => {
+    // Update the profile data in the query cache
+    queryClient.setQueryData(['profile', targetUserId], (oldData: UserProfile | undefined) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        interesses: newInterests
+      };
+    });
+    setIsEditingInterests(false);
+  };
+
+  const handleInterestsCancel = () => {
+    setIsEditingInterests(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-muted/20 flex items-center justify-center">
@@ -308,35 +332,42 @@ export default function Profile() {
                   Membro desde {new Date(profileData.criado_em).toLocaleDateString('pt-BR')}
                 </p>
                     </div>
-              {isOwnProfile && (
-                <div className="flex gap-2">
-                  {isEditing ? (
-                    <>
-                      <Button
-                        onClick={handleSave}
-                        disabled={updateProfileMutation.isPending}
-                        size="sm"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Salvar
+              <div className="flex gap-2">
+                {isOwnProfile ? (
+                  <>
+                    {isEditing ? (
+                      <>
+                        <Button
+                          onClick={handleSave}
+                          disabled={updateProfileMutation.isPending}
+                          size="sm"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Salvar
+                        </Button>
+                        <Button
+                          onClick={handleCancel}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancelar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button onClick={handleEdit} variant="outline" size="sm">
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Editar Perfil
                       </Button>
-                      <Button
-                        onClick={handleCancel}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Cancelar
-                      </Button>
-                    </>
-                  ) : (
-                    <Button onClick={handleEdit} variant="outline" size="sm">
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Editar Perfil
-                    </Button>
-                  )}
-                </div>
-              )}
+                    )}
+                  </>
+                ) : (
+                  <Button onClick={handleStartConversation} size="sm">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Enviar Mensagem
+                  </Button>
+                )}
+              </div>
                 </div>
               </CardContent>
             </Card>
@@ -400,24 +431,42 @@ export default function Profile() {
           <TabsContent value="interesses">
             <Card>
               <CardHeader>
-                <CardTitle>Interesses</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Interesses</CardTitle>
+                  {isOwnProfile && !isEditingInterests && (
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditingInterests(true)}>
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                {profileData.interesses && profileData.interesses.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {profileData.interesses.map((interesse) => (
-                      <Badge key={interesse.id} variant="secondary">
-                        {interesse.nome}
-                      </Badge>
-                  ))}
-                </div>
+                {isEditingInterests && isOwnProfile ? (
+                  <InterestsEditor
+                    currentInterests={profileData.interesses || []}
+                    userId={profileData.id}
+                    onSave={handleInterestsSave}
+                    onCancel={handleInterestsCancel}
+                  />
                 ) : (
-                  <p className="text-muted-foreground italic">
-                    {isOwnProfile 
-                      ? "Nenhum interesse cadastrado ainda. Você pode adicionar interesses através das configurações do seu perfil."
-                      : "Este usuário não cadastrou interesses ainda."
-                    }
-                  </p>
+                  <>
+                    {profileData.interesses && profileData.interesses.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {profileData.interesses.map((interesse) => (
+                          <Badge key={interesse.id} variant="secondary">
+                            {interesse.nome}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        {isOwnProfile 
+                          ? "Nenhum interesse cadastrado ainda. Clique no ícone de edição para adicionar interesses."
+                          : "Este usuário não cadastrou interesses ainda."
+                        }
+                      </p>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

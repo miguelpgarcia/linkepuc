@@ -14,7 +14,7 @@ dependencies = [
     "uvicorn",
     "python-dotenv",
     "sqlalchemy>=2.0.40",
-    "psycopg2",
+    "psycopg2-binary",
     "passlib>=1.7.4",
     "python-jose>=3.4.0",
     "python-multipart>=0.0.20",

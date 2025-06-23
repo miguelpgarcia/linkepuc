@@ -23,6 +23,7 @@ import ProfessorRegister from "./pages/ProfessorRegister";
 import ProfessorMessages from "./pages/ProfessorMessages";
 import ProfessorNotifications from "./pages/ProfessorNotifications";
 import ProfessorProfile from "./pages/ProfessorProfile";
+import ImportCurriculum from "./pages/ImportCurriculum";
 import VerifyEmail from "./pages/VerifyEmail";
 import { apiFetch } from "@/apiFetch";
 import { mapBackendToFrontendOpportunities } from "./pages/Opportunities";
@@ -129,6 +130,14 @@ const App = () => (
             element={
               <ProtectedRoute requireStudent>
                 <Notifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/import-curriculum"
+            element={
+              <ProtectedRoute requireStudent>
+                <ImportCurriculum />
               </ProtectedRoute>
             }
           />

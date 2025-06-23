@@ -17,7 +17,7 @@ const studentSteps = [
     icon: <FileUp className="h-12 w-12 text-primary" />,
     title: "Importe seu currículo",
     description: "Envie seu currículo acadêmico para personalizar sua experiência.",
-    link: "/publicacoes"
+    link: "/import-curriculum"
   },
   {
     icon: <ArrowRight className="h-12 w-12 text-primary" />,

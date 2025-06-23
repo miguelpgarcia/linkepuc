@@ -30,3 +30,4 @@ class Vagas(Base):
     location = relationship("Location")
     department = relationship("Departamento")  # Add department relationship
     candidatos = relationship("CandidatoVaga", back_populates="vaga")  # Add relationship to candidatos
+    recomendacoes = relationship("Recomendacao", back_populates="vaga")

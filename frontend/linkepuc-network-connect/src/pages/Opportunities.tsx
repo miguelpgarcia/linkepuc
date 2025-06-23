@@ -4,16 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Filter, Search, Plus } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { RemainingHoursCredits } from "@/components/opportunity/RemainingHoursCredits";
 import { BenefitsFilter } from "@/components/opportunity/BenefitsFilter";
+import { CurriculumPrompt } from "@/components/opportunities/CurriculumPrompt";
 import { apiFetch } from "@/apiFetch";
 import { useQuery } from "@tanstack/react-query";
+import { useCurriculumStatus } from "@/hooks/use-curriculum-status";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Opportunity {
   id: number;
@@ -26,12 +31,14 @@ export default function Opportunities() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState("Todos os Departamentos");
-  const [showRecommended, setShowRecommended] = useState(true);
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const PAGE_SIZE = 8;
+
+  // Check curriculum status
+  const { data: curriculumStatus } = useCurriculumStatus();
 
   // Fetch filters with React Query
   const { data: filtersData, isLoading: isLoadingFilters } = useQuery({
@@ -60,7 +67,7 @@ export default function Opportunities() {
   });
 
   // Fetch opportunities with React Query
-  const { data: rawOpportunities = [], isLoading: isLoadingOpportunities } = useQuery({
+  const { data: opportunitiesData, isLoading: isLoadingOpportunities } = useQuery({
     queryKey: ['opportunities', page], // Only depend on page number
     queryFn: async () => {
       const response = await apiFetch(`http://localhost:8000/vagas/?skip=${page * PAGE_SIZE}&limit=${PAGE_SIZE}`);
@@ -76,10 +83,32 @@ export default function Opportunities() {
   const departments = filtersData?.departments || [];
 
   // Map raw opportunities to frontend shape using useMemo
-  const opportunities = useMemo(() => {
-    if (!rawOpportunities || !opportunityTypes) return [];
-    return mapBackendToFrontendOpportunities(rawOpportunities, opportunityTypes);
-  }, [rawOpportunities, opportunityTypes]);
+  const allOpportunities = useMemo(() => {
+    if (!opportunitiesData?.vagas || !opportunityTypes) return [];
+    return mapBackendToFrontendOpportunities(opportunitiesData.vagas, opportunityTypes);
+  }, [opportunitiesData, opportunityTypes]);
+
+  // Apply filters to all opportunities
+  const filteredOpportunities = useMemo(() => {
+    return allOpportunities.filter((opp) => {
+      const matchesType = selectedTypes.length === 0 || (opp.originalTipo && selectedTypes.includes(opp.originalTipo.id));
+      const matchesSearch =
+        searchQuery === "" ||
+        (opp.title && opp.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (opp.description && opp.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesDepartment =
+        selectedDepartment === "Todos os Departamentos" ||
+        (opp.department && opp.department.name === selectedDepartment);
+      const matchesBenefits =
+        selectedBenefits.length === 0 ||
+        (opp.benefits &&
+          selectedBenefits.every(
+            (benefit) => opp.benefits && benefit in opp.benefits && opp.benefits[benefit] !== undefined
+          ));
+
+      return matchesType && matchesSearch && matchesDepartment && matchesBenefits;
+    });
+  }, [allOpportunities, selectedTypes, searchQuery, selectedDepartment, selectedBenefits]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -115,39 +144,6 @@ export default function Opportunities() {
       setSelectedBenefits([...selectedBenefits, benefit]);
     }
   };
-
-  const filteredOpportunities = useMemo(() => {
-    return opportunities.filter((opp) => {
-      const matchesType = selectedTypes.length === 0 || (opp.tipo && selectedTypes.includes(opp.tipo.id));
-      const matchesSearch =
-        searchQuery === "" ||
-        (opp.titulo && opp.titulo.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (opp.descricao && opp.descricao.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesDepartment =
-        selectedDepartment === "Todos os Departamentos" ||
-        (opp.department && opp.department.name === selectedDepartment);
-      const matchesBenefits =
-        selectedBenefits.length === 0 ||
-        (opp.benefits &&
-          selectedBenefits.every(
-            (benefit) => opp.benefits && benefit in opp.benefits && opp.benefits[benefit] !== undefined
-          ));
-
-      return matchesType && matchesSearch && matchesDepartment && matchesBenefits;
-    });
-  }, [opportunities, selectedTypes, searchQuery, selectedDepartment, selectedBenefits]);
-
-  // Simulating recommended opportunities based on user interests
-  const recommendedOpportunities = useMemo(() => {
-    return showRecommended
-      ? opportunities.filter(
-          (opp) =>
-            (opp.tipo && opp.tipo.nome === "Iniciação Ciêntifica") ||
-            (opp.department && opp.department.name.includes("Informática")) ||
-            (opp.titulo && opp.titulo.toLowerCase().includes("algoritmo"))
-        )
-      : [];
-  }, [opportunities, showRecommended]);
 
   if (isLoading) {
     return (
@@ -211,17 +207,6 @@ export default function Opportunities() {
                   selectedBenefits={selectedBenefits}
                   onToggleBenefit={toggleBenefit}
                 />
-
-                <div className="pt-2 border-t">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="recommended"
-                      checked={showRecommended}
-                      onCheckedChange={setShowRecommended}
-                    />
-                    <Label htmlFor="recommended">Mostrar recomendadas</Label>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
@@ -238,6 +223,11 @@ export default function Opportunities() {
               <h1 className="text-2xl font-bold">Oportunidades Acadêmicas</h1>
             </div>
 
+            {/* Show curriculum prompt if user hasn't imported their curriculum */}
+            {curriculumStatus && !curriculumStatus.has_curriculum && (
+              <CurriculumPrompt />
+            )}
+
             <form onSubmit={handleSearch} className="relative mb-6">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -248,70 +238,92 @@ export default function Opportunities() {
               />
             </form>
 
-            <Tabs defaultValue="all" className="mb-6">
-              <TabsList>
-                <TabsTrigger value="all">Todas</TabsTrigger>
-                <TabsTrigger value="recommended">Recomendadas</TabsTrigger>
-                <TabsTrigger value="recent">Recentes</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="all">
-                {filteredOpportunities.length > 0 ? (
-                  <>
-                    <div className="space-y-4">
-                      {filteredOpportunities.map((opportunity) => (
-                        <OpportunityCard key={opportunity.id} {...opportunity} />
-                      ))}
-                    </div>
-                    <div className="flex justify-center gap-4 mt-6">
-                      <Button 
-                        onClick={() => setPage((p) => Math.max(0, p - 1))}
-                        disabled={page === 0 || isLoading}
-                        variant="outline"
-                      >
-                        Anterior
-                      </Button>
-                      <span className="py-2">
-                        Página {page + 1}
-                      </span>
-                      <Button
-                        onClick={() => setPage((p) => p + 1)}
-                        disabled={rawOpportunities.length < PAGE_SIZE || isLoading}
-                        variant="outline"
-                      >
-                        Próxima
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">
-                      Nenhuma oportunidade encontrada com os filtros atuais.
-                    </p>
-                  </div>
+            {/* Single list of opportunities */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">
+                  Oportunidades para Você
+                </h2>
+                {opportunitiesData?.recommended_count > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {opportunitiesData.recommended_count} recomendadas baseadas nos seus interesses
+                  </span>
                 )}
-              </TabsContent>
+              </div>
 
-              <TabsContent value="recommended">
-                {recommendedOpportunities.length > 0 ? (
-                  recommendedOpportunities.map((opportunity) => (
-                    <OpportunityCard key={opportunity.id} {...opportunity} />
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">
-                      Nenhuma oportunidade recomendada encontrada. Atualize seu perfil com seus interesses para receber recomendações.
-                    </p>
+              {filteredOpportunities.length > 0 ? (
+                <>
+                  <div className="space-y-4">
+                    {filteredOpportunities.map((opportunity) => (
+                      <div key={opportunity.id} className="relative">
+                        {/* Recommendation Badge */}
+                        {opportunity.isRecommended && (
+                          <div className="absolute top-4 right-4 z-10">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                                    <span className="text-xs">★</span>
+                                    <span className="ml-1">
+                                      {opportunity.recommendationScore 
+                                        ? `${Math.round(opportunity.recommendationScore * 100)}% match`
+                                        : 'Recomendado'
+                                      }
+                                    </span>
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs">
+                                    <p className="font-medium mb-1">Por que foi recomendado:</p>
+                                    {opportunity.recommendationStrategies && opportunity.recommendationStrategies.length > 0 ? (
+                                      <ul className="text-sm space-y-1">
+                                        {opportunity.recommendationStrategies.map((strategy: any, index: number) => (
+                                          <li key={index}>
+                                            • {strategy.explanation}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-sm">Baseado nos seus interesses</p>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        )}
+                        <OpportunityCard {...opportunity} />
+                      </div>
+                    ))}
                   </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="recent">
-                {opportunities.slice(0, 3).map((opportunity) => (
-                  <OpportunityCard key={opportunity.id} {...opportunity} />
-                ))}
-              </TabsContent>
-            </Tabs>
+                  <div className="flex justify-center gap-4 mt-6">
+                    <Button 
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      disabled={page === 0 || isLoading}
+                      variant="outline"
+                    >
+                      Anterior
+                    </Button>
+                    <span className="py-2">
+                      Página {page + 1}
+                    </span>
+                    <Button
+                      onClick={() => setPage((p) => p + 1)}
+                      disabled={allOpportunities.length < PAGE_SIZE || isLoading}
+                      variant="outline"
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">
+                    Nenhuma oportunidade encontrada com os filtros atuais.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
@@ -320,26 +332,39 @@ export default function Opportunities() {
 }
 
 export function mapBackendToFrontendOpportunities(data: any[], opportunityTypes: { id: number; value: string; label: string; color: string }[]): any[] {
-  return data.map((item) => {
-    const matchedType = opportunityTypes.find((type) => type.id === item.tipo?.id);
+  // Function to map backend type names to frontend type enum
+  const mapTypeToFrontend = (backendType: any): "monitoria" | "iniciacao_cientifica" | "estagio" | "bolsa" | "empresa_jr" | "laboratorio" => {
+    if (!backendType?.nome) return "monitoria";
+    
+    const typeName = backendType.nome.toLowerCase();
+    if (typeName.includes("monitoria")) return "monitoria";
+    if (typeName.includes("iniciação") || typeName.includes("iniciacao") || typeName.includes("científica") || typeName.includes("cientifica")) return "iniciacao_cientifica";
+    if (typeName.includes("estágio") || typeName.includes("estagio")) return "estagio";
+    if (typeName.includes("bolsa")) return "bolsa";
+    if (typeName.includes("empresa") && typeName.includes("júnior")) return "empresa_jr";
+    if (typeName.includes("laboratório") || typeName.includes("laboratorio")) return "laboratorio";
+    
+    return "monitoria"; // default
+  };
 
+  return data.map((item) => {
     return {
-      id: item.id,
+      id: item.id.toString(), // Convert to string
       title: item.titulo || "Título não especificado",
       department: {
         id: item.department?.id || 0,
         name: item.department?.name || "Departamento não especificado"
       },
-      location: item.location || "Localização não especificada",
+      location: item.location?.name || "Localização não especificada", // Extract name from location object
       postedBy: item.autor
         ? {
-            id: item.autor.id,
-            name: item.autor.usuario,
+            id: item.autor.id.toString(), // Convert to string
+            name: item.autor.nome || item.autor.usuario, // Use nome field from backend
             avatar: item.autor.avatar,
           }
         : { id: "0", name: "Autor desconhecido", avatar: "" },
       timeAgo: "Publicado recentemente",
-      tipo: item.tipo,
+      type: mapTypeToFrontend(item.tipo), // Map to correct frontend type
       description: item.descricao || "Descrição não especificada",
       benefits: {
         remuneracao: item.remuneracao ? `R$${item.remuneracao},00` : undefined,
@@ -348,6 +373,12 @@ export function mapBackendToFrontendOpportunities(data: any[], opportunityTypes:
           ? `${item.horas_complementares}h`
           : undefined,
       },
+      isRecommended: item.isRecommended,
+      // Keep original tipo for filtering
+      originalTipo: item.tipo,
+      // Add recommendation data
+      recommendationScore: item.recommendationScore,
+      recommendationStrategies: item.recommendationStrategies,
     };
   });
 }

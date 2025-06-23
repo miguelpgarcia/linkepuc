@@ -4,6 +4,7 @@ import { OpportunityDescription } from "@/components/opportunity/OpportunityDesc
 import { OpportunityRequirements } from "@/components/opportunity/OpportunityRequirements";
 import { ProfessorProfile } from "@/components/opportunity/ProfessorProfile";
 import { OpportunityLink } from "@/components/opportunity/OpportunityLink";
+import { ApplicationSection } from "@/components/opportunity/ApplicationSection";
 import { Button } from "@/components/ui/button";
 import { OpportunityInterests } from "@/components/professor/OpportunityInterests";
 import { useParams, useNavigate } from "react-router-dom";
@@ -23,6 +24,8 @@ export default function OpportunityDetail() {
   console.log("Link vaga:", opportunity?.link_vaga);
   console.log("Link vaga type:", typeof opportunity?.link_vaga);
   console.log("Link vaga length:", opportunity?.link_vaga?.length);
+  console.log("Interesses:", opportunity?.interesses);
+  console.log("Interesses length:", opportunity?.interesses?.length);
 
   if (isLoading) {
     return (
@@ -62,7 +65,7 @@ export default function OpportunityDetail() {
             <div className="lg:col-span-2 space-y-6">
               <OpportunityDescription description={opportunity.descricao} />
               {opportunity.interesses && opportunity.interesses.length > 0 && (
-                <OpportunityInterests interests={opportunity.interesses.map(i => i.nome)} />
+                <OpportunityInterests interests={opportunity.interesses.map(i => i.interesse.nome)} />
               )}
             </div>
             
@@ -114,6 +117,11 @@ export default function OpportunityDetail() {
                   otherOpportunities: 0
                 }} />
               )}
+              
+              <ApplicationSection 
+                vagaId={opportunity.id} 
+                vagaTitulo={opportunity.titulo} 
+              />
               
               <OpportunityLink link={opportunity.link_vaga} />
             </div>

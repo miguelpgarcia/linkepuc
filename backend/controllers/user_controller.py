@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, status, BackgroundTasks
 from utils.jwt_utils import create_access_token
 from sqlalchemy.orm import Session
 from repositories.user_repository import (
@@ -21,6 +21,7 @@ import os
 from dotenv import load_dotenv
 from dependecies import get_current_user
 from services.email_service import generate_verification_token, get_token_expiry, send_verification_email
+from services.recommendation_service import RecommendationService
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import jwt, JWTError
@@ -36,6 +37,9 @@ cloudinary.config(
 )
 
 user_router = APIRouter()
+
+# Initialize recommendation service
+recommendation_service = RecommendationService()
 
 class UserCreate(BaseModel):
     usuario: str
@@ -274,6 +278,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         )
     
     print("Login successful")
+    
+
+    
     # Create JWT token with user type
     access_token = create_access_token(data={"user_id": user.id, "is_student": user.ehaluno})
     return {

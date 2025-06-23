@@ -1,8 +1,9 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.candidato_vaga import CandidatoVaga
+from models.user import User
 from sqlalchemy import func
 
-def create_candidatura(db: Session, candidato_id: int, vaga_id: int):
+def create_candidatura(db: Session, candidato_id: int, vaga_id: int, carta_motivacao: str = None):
     # Check if candidatura already exists
     existing = db.query(CandidatoVaga).filter(
         CandidatoVaga.candidato_id == candidato_id,
@@ -15,7 +16,8 @@ def create_candidatura(db: Session, candidato_id: int, vaga_id: int):
     # Create new candidatura
     candidatura = CandidatoVaga(
         candidato_id=candidato_id,
-        vaga_id=vaga_id
+        vaga_id=vaga_id,
+        carta_motivacao=carta_motivacao
     )
     db.add(candidatura)
     db.commit()
@@ -23,7 +25,7 @@ def create_candidatura(db: Session, candidato_id: int, vaga_id: int):
     return candidatura
 
 def get_candidaturas_by_vaga(db: Session, vaga_id: int):
-    return db.query(CandidatoVaga).filter(CandidatoVaga.vaga_id == vaga_id).all()
+    return db.query(CandidatoVaga).options(joinedload(CandidatoVaga.candidato)).filter(CandidatoVaga.vaga_id == vaga_id).all()
 
 def get_candidaturas_by_candidato(db: Session, candidato_id: int):
     return db.query(CandidatoVaga).filter(CandidatoVaga.candidato_id == candidato_id).all()
@@ -41,3 +43,9 @@ def delete_candidatura(db: Session, candidato_id: int, vaga_id: int):
         db.delete(candidatura)
         db.commit()
     return candidatura 
+
+def check_candidatura_exists(db: Session, candidato_id: int, vaga_id: int):
+    return db.query(CandidatoVaga).filter(
+        CandidatoVaga.candidato_id == candidato_id,
+        CandidatoVaga.vaga_id == vaga_id
+    ).first() is not None 

@@ -15,14 +15,74 @@ import {
   AccordionItem, 
   AccordionTrigger 
 } from "@/components/ui/accordion";
-import { Check, X, Book, GraduationCap } from "lucide-react";
-import { Candidate } from "@/types/professor";
+import { MessageCircle, Book, GraduationCap, ExternalLink } from "lucide-react";
+import { useCandidatos } from "@/hooks/use-candidaturas";
+import { useNavigate } from "react-router-dom";
 
 interface StudentCandidatesListProps {
-  candidates: Candidate[];
+  vagaId: number;
 }
 
-export function StudentCandidatesList({ candidates }: StudentCandidatesListProps) {
+export function StudentCandidatesList({ vagaId }: StudentCandidatesListProps) {
+  const { data: candidaturas, isLoading, error } = useCandidatos(vagaId);
+  const navigate = useNavigate();
+
+  const handleSendMessage = (candidatoId: number) => {
+    navigate(`/professor/messages?userId=${candidatoId}`);
+  };
+
+  const handleViewProfile = (candidatoId: number) => {
+    navigate(`/professor/profile/${candidatoId}`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-medium flex items-center gap-2">
+            <GraduationCap className="h-5 w-5" />
+            Alunos Candidatos
+          </h3>
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-muted rounded-full"></div>
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-muted rounded w-1/3"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-medium flex items-center gap-2">
+            <GraduationCap className="h-5 w-5" />
+            Alunos Candidatos
+          </h3>
+        </div>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">Erro ao carregar candidatos</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const candidates = candidaturas || [];
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -32,57 +92,65 @@ export function StudentCandidatesList({ candidates }: StudentCandidatesListProps
         </h3>
       </div>
       
-      <div className="space-y-4">
-        {candidates.map((candidate) => (
-          <Card key={candidate.id} className="overflow-hidden border-l-4 border-l-primary">
+      {candidates.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Nenhum candidato ainda</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Os candidatos aparecerão aqui quando se inscreverem para esta oportunidade.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {candidates.map((candidatura) => (
+          <Card key={candidatura.id} className="overflow-hidden border-l-4 border-l-primary">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={candidate.imageUrl} />
+                <div className="flex items-center gap-3 flex-1">
+                  <Avatar 
+                    className="h-12 w-12 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => handleViewProfile(candidatura.candidato.id)}
+                    title="Clique para ver o perfil"
+                  >
+                    <AvatarImage src={candidatura.candidato.avatar || undefined} />
                     <AvatarFallback>
-                      {candidate.name
+                      {candidatura.candidato.usuario
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <CardTitle className="text-lg">{candidate.name}</CardTitle>
+                  <div className="flex-1">
+                    <CardTitle 
+                      className="text-lg cursor-pointer hover:text-primary transition-colors flex items-center gap-2 group"
+                      onClick={() => handleViewProfile(candidatura.candidato.id)}
+                      title="Clique para ver o perfil"
+                    >
+                      {candidatura.candidato.usuario}
+                      <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </CardTitle>
                     <CardDescription>
-                      {candidate.course} • Média: 
-                      <span className={candidate.grade >= 8.0 ? "text-green-600 font-medium ml-1" : "ml-1"}>
-                        {candidate.grade.toFixed(1)}
-                        {candidate.grade >= 8.0 && " ✓"}
-                      </span>
+                      {candidatura.candidato.email} • Candidatura em {new Date(candidatura.criado_em).toLocaleDateString('pt-BR')}
                     </CardDescription>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="text-green-600">
-                    <Check className="h-4 w-4 mr-1" />
-                    Aprovar
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-red-600">
-                    <X className="h-4 w-4 mr-1" />
-                    Recusar
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleSendMessage(candidatura.candidato.id)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" />
+                    Enviar Mensagem
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="mb-3">
-                <div className="text-sm text-muted-foreground mb-1">Interesses:</div>
-                <div className="flex flex-wrap gap-1">
-                  {candidate.interests.map((interest, index) => (
-                    <Badge key={index} variant="outline" className="bg-muted">
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              
-              {candidate.hasMotivationLetter ? (
+              {candidatura.carta_motivacao ? (
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="motivation">
                     <AccordionTrigger className="text-primary flex items-center gap-1.5 py-2">
@@ -91,7 +159,7 @@ export function StudentCandidatesList({ candidates }: StudentCandidatesListProps
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="bg-muted/30 p-3 rounded-md text-sm italic">
-                        "{candidate.motivationLetter}"
+                        "{candidatura.carta_motivacao}"
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -105,6 +173,7 @@ export function StudentCandidatesList({ candidates }: StudentCandidatesListProps
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 }

@@ -24,7 +24,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireStudent && !isStudent) {
-    return <Navigate to="/professor/dashboard" replace />;
+    return <Navigate to="/professor/opportunities" replace />;
   }
 
   return <>{children}</>;

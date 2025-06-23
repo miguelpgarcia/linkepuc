@@ -58,8 +58,141 @@ def get_vagas_cached(skip: int = 0, limit: int = 20):
     finally:
         db.close()
 
-def get_vagas(db: Session, skip: int = 0, limit: int = 20):
-    return get_vagas_cached(skip=skip, limit=limit)
+def get_vagas(db: Session, skip: int = 0, limit: int = 20, user_id: int = None):
+    # Get total count for pagination info
+    total = db.query(Vagas).filter(Vagas.status == "em_andamento").count()
+    
+    recommended_vagas = []
+    regular_vagas = []
+    recommendations_data = {}  # Store recommendation data to avoid recalculation
+    
+    if user_id:
+        # Import and use recommendation engine
+        from services.recommendation_strategies import RecommendationEngine
+        from models.user import User
+        
+        # Get user object
+        user = db.query(User).filter(User.id == user_id).first()
+        
+        if user:
+            # Get recommendations using the engine
+            engine = RecommendationEngine()
+            recommendations = engine.get_combined_recommendations(db, user, limit=5)
+            
+            if recommendations:
+                # Store recommendation data for later use
+                for rec in recommendations:
+                    recommendations_data[rec['vaga_id']] = {
+                        'score': rec['total_score'],
+                        'strategies': rec['strategies']
+                    }
+                
+                # Fetch the actual vaga objects
+                recommended_vaga_ids = list(recommendations_data.keys())
+                recommended_vagas_raw = db.query(Vagas).options(
+                    joinedload(Vagas.autor),
+                    joinedload(Vagas.tipo),
+                    joinedload(Vagas.department),
+                    joinedload(Vagas.location),
+                    joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
+                ).filter(
+                    Vagas.id.in_(recommended_vaga_ids),
+                    Vagas.status == "em_andamento"
+                ).all()
+                
+                # Sort by recommendation score
+                recommended_vagas = sorted(
+                    recommended_vagas_raw,
+                    key=lambda v: recommendations_data[v.id]['score'],
+                    reverse=True
+                )
+                
+                # Get remaining vagas (not recommended)
+                remaining_limit = limit - len(recommended_vagas)
+                if remaining_limit > 0:
+                    regular_vagas = db.query(Vagas).options(
+                        joinedload(Vagas.autor),
+                        joinedload(Vagas.tipo),
+                        joinedload(Vagas.department),
+                        joinedload(Vagas.location),
+                        joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
+                    ).filter(
+                        Vagas.status == "em_andamento",
+                        ~Vagas.id.in_(recommended_vaga_ids) if recommended_vaga_ids else True
+                    ).order_by(Vagas.criado_em.desc()).offset(skip).limit(remaining_limit).all()
+    
+    # If no user or no recommendations, just get regular vagas
+    if not recommended_vagas and not regular_vagas:
+        regular_vagas = db.query(Vagas).options(
+            joinedload(Vagas.autor),
+            joinedload(Vagas.tipo),
+            joinedload(Vagas.department),
+            joinedload(Vagas.location),
+            joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
+        ).filter(Vagas.status == "em_andamento").order_by(Vagas.criado_em.desc()).offset(skip).limit(limit).all()
+    
+    # Combine recommended + regular vagas
+    all_vagas = recommended_vagas + regular_vagas
+    
+    # Convert to dict format
+    result = []
+    for i, vaga in enumerate(all_vagas):
+        # Get recommendation data if available
+        recommendation_score = 0.0
+        recommendation_strategies = []
+        if vaga.id in recommendations_data:
+            recommendation_score = recommendations_data[vaga.id]['score']
+            recommendation_strategies = recommendations_data[vaga.id]['strategies']
+        
+        vaga_dict = {
+            "id": vaga.id,
+            "titulo": vaga.titulo,
+            "descricao": vaga.descricao,
+            "prazo": vaga.prazo.isoformat() if vaga.prazo else None,
+            "status": vaga.status,
+            "criado_em": vaga.criado_em.isoformat() if vaga.criado_em else None,
+            "remuneracao": vaga.remuneracao,
+            "horas_complementares": vaga.horas_complementares,
+            "desconto": vaga.desconto,
+            "link_vaga": vaga.link_vaga,
+            "professor": vaga.professor,
+            "autor": {
+                "id": vaga.autor.id,
+                "nome": vaga.autor.usuario,  # Use usuario field
+                "usuario": vaga.autor.usuario,
+                "email": vaga.autor.email,
+                "avatar": vaga.autor.avatar
+            } if vaga.autor else None,
+            "tipo": {
+                "id": vaga.tipo.id,
+                "nome": vaga.tipo.nome
+            } if vaga.tipo else None,
+            "department": {
+                "id": vaga.department.id,
+                "name": vaga.department.name,
+                "sigla": vaga.department.sigla
+            } if vaga.department else None,
+            "location": {
+                "id": vaga.location.id,
+                "name": vaga.location.name
+            } if vaga.location else None,
+            "interesses": [
+                {
+                    "interesse": {
+                        "id": iv.interesse.id,
+                        "nome": iv.interesse.nome
+                    }
+                } for iv in vaga.interesses
+            ],
+            # Mark as recommended if it's in the first batch (recommended_vagas)
+            "isRecommended": i < len(recommended_vagas),
+            # Include recommendation data
+            "recommendationScore": recommendation_score,
+            "recommendationStrategies": recommendation_strategies
+        }
+        result.append(vaga_dict)
+    
+    return {"vagas": result, "total": total, "recommended_count": len(recommended_vagas)}
 
 def update_vaga(db: Session, vaga_id: int, titulo: str, descricao: str, prazo: str):
     vaga = db.query(Vagas).filter(Vagas.id == vaga_id).first()

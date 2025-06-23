@@ -29,8 +29,10 @@ export interface Opportunity {
   professor?: string;
   link_vaga?: string;
   interesses: Array<{
-    id: number;
-    nome: string;
+    interesse: {
+      id: number;
+      nome: string;
+    };
   }>;
 }
 

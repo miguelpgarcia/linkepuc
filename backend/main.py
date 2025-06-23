@@ -10,6 +10,7 @@ from controllers.historico_controller import historico_router
 from controllers.mensagem_controller import mensagem_router
 from models.base import Base, engine
 from controllers.candidato_vaga_controller import candidato_vaga_router
+from controllers.recommendation_controller import recommendation_router
 
 # Initialize database
 Base.metadata.create_all(bind=engine)
@@ -20,7 +21,7 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:8080"],  # Frontend URLs
+    allow_origins=["http://localhost:5173", "http://localhost:8080", "http://localhost:4173"],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +37,7 @@ app.include_router(departamento_router, prefix="/departamentos", tags=["Departam
 app.include_router(historico_router, prefix="/historicos", tags=["Historicos"])
 app.include_router(mensagem_router, prefix="/mensagens", tags=["Mensagens"])
 app.include_router(candidato_vaga_router, prefix="/api/candidaturas", tags=["candidaturas"])
+app.include_router(recommendation_router, prefix="/recomendacoes", tags=["Recomendacoes"])
 
 @app.get("/")
 async def hello_world():

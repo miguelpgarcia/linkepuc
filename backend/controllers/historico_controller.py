@@ -4,6 +4,8 @@ from dependecies import get_current_user
 from models.base import SessionLocal
 
 from repositories.historico_repository import create_historico, get_historico_by_user, has_historico, delete_historico_by_user
+from models.historico import Historico
+from models.user import User
 import pdfplumber
 
 
@@ -72,7 +74,7 @@ def process_historico_pdf(file: UploadFile) -> list[dict]:
     return data
 
 @historico_router.post("/upload")
-async def upload_historico(file: UploadFile = File(...), user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
+async def upload_historico(file: UploadFile = File(...), current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Upload and process a historico escolar PDF.
     """
@@ -81,15 +83,35 @@ async def upload_historico(file: UploadFile = File(...), user_id: int = Depends(
 
 
     historico_data = process_historico_pdf(file)
-    if has_historico(db, user_id):
-        delete_historico_by_user(db, user_id)
-    create_historico(db, user_id, historico_data)
+    if has_historico(db, current_user.id):
+        delete_historico_by_user(db, current_user.id)
+    create_historico(db, current_user.id, historico_data)
     return {"message": "Historico uploaded and processed successfully."}
 
+@historico_router.get("/status")
+async def get_historico_status(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Check if the authenticated user has uploaded their historico.
+    """
+    has_curriculum = has_historico(db, current_user.id)
+    
+    # Get the most recent historico entry to determine upload date
+    upload_date = None
+    if has_curriculum:
+        # Get the first historico entry (they're all uploaded at the same time)
+        first_entry = db.query(Historico).filter(Historico.user_id == current_user.id).first()
+        if first_entry:
+            upload_date = first_entry.id  # Using ID as a proxy for upload order/date
+    
+    return {
+        "has_curriculum": has_curriculum,
+        "upload_date": upload_date
+    }
+
 @historico_router.get("/")
-async def get_user_historico(user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_user_historico(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Retrieve the historico for the authenticated user.
     """
-    historico = get_historico_by_user(db, user_id)
+    historico = get_historico_by_user(db, current_user.id)
     return historico

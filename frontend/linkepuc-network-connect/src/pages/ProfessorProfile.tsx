@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { ProfessorHeader } from "@/components/layout/ProfessorHeader";
 import { useAuth } from "@/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Edit2, Save, X, Trash2, GraduationCap, BookOpen } from "lucide-react";
+import { Camera, Edit2, Save, X, Trash2, GraduationCap, BookOpen, MessageCircle } from "lucide-react";
 import { apiFetch } from "@/apiFetch";
+import { InterestsEditor } from "@/components/InterestsEditor";
 
 interface UserProfile {
   id: number;
@@ -20,7 +21,10 @@ interface UserProfile {
   ehaluno: boolean;
   sobre: string | null;
   avatar: string | null;
-  interesses: string[];
+  interesses: Array<{
+    id: number;
+    nome: string;
+  }>;
   departamento?: string;
   titulo?: string;
 }
@@ -30,6 +34,7 @@ export default function ProfessorProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Determine if this is the user's own profile
@@ -38,6 +43,7 @@ export default function ProfessorProfile() {
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
+  const [isEditingInterests, setIsEditingInterests] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedBio, setEditedBio] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -171,6 +177,27 @@ export default function ProfessorProfile() {
     uploadAvatarMutation.mutate(file);
   };
 
+  const handleStartConversation = () => {
+    if (!profileData) return;
+    navigate(`/professor/messages?userId=${profileData.id}`);
+  };
+
+  const handleInterestsSave = (newInterests: Array<{id: number; nome: string}>) => {
+    // Update the profile data in the query cache
+    queryClient.setQueryData(['professor-profile', profileId], (oldData: UserProfile | undefined) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        interesses: newInterests
+      };
+    });
+    setIsEditingInterests(false);
+  };
+
+  const handleInterestsCancel = () => {
+    setIsEditingInterests(false);
+  };
+
   const getUserInitials = () => {
     if (!profileData?.usuario) return "P";
     const names = profileData.usuario.split(" ");
@@ -258,7 +285,9 @@ export default function ProfessorProfile() {
 
                 <div className="flex items-center gap-2">
                   <GraduationCap className="h-5 w-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">Professor</span>
+                  <span className="text-sm text-muted-foreground">
+                    {profileData.ehaluno ? "Estudante" : "Professor"}
+                  </span>
                 </div>
               </div>
 
@@ -295,6 +324,14 @@ export default function ProfessorProfile() {
 
                 {/* Email */}
                 <p className="text-muted-foreground">{profileData.email}</p>
+
+                {/* Message Button */}
+                {!isOwnProfile && (
+                  <Button onClick={handleStartConversation} size="sm" className="w-fit">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Enviar Mensagem
+                  </Button>
+                )}
 
                 {/* Department/Title */}
                 {(profileData.departamento || profileData.titulo) && (
@@ -348,18 +385,47 @@ export default function ProfessorProfile() {
           </Card>
 
           {/* Interests Section */}
-          {profileData.interesses && profileData.interesses.length > 0 && (
+          {(profileData.interesses && profileData.interesses.length > 0) || (isOwnProfile && isEditingInterests) ? (
             <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Áreas de Interesse</h2>
-              <div className="flex flex-wrap gap-2">
-                {profileData.interesses.map((interesse) => (
-                  <Badge key={interesse} variant="secondary">
-                    {interesse}
-                  </Badge>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Áreas de Interesse</h2>
+                {isOwnProfile && !isEditingInterests && (
+                  <Button size="sm" variant="ghost" onClick={() => setIsEditingInterests(true)}>
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
+              
+              {isEditingInterests && isOwnProfile ? (
+                <InterestsEditor
+                  currentInterests={profileData.interesses || []}
+                  userId={profileData.id}
+                  onSave={handleInterestsSave}
+                  onCancel={handleInterestsCancel}
+                />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {profileData.interesses.map((interesse) => (
+                    <Badge key={interesse.id} variant="secondary">
+                      {interesse.nome}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </Card>
-          )}
+          ) : isOwnProfile ? (
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Áreas de Interesse</h2>
+                <Button size="sm" variant="ghost" onClick={() => setIsEditingInterests(true)}>
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-muted-foreground italic">
+                Nenhum interesse cadastrado ainda. Clique no ícone de edição para adicionar interesses.
+              </p>
+            </Card>
+          ) : null}
         </div>
       </main>
     </div>

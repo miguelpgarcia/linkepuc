@@ -1,9 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, CheckCircle, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { MessageSquare, CheckCircle, RotateCcw, Send } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
 import { useToast } from "@/hooks/use-toast";
+import { useCandidatos } from "@/hooks/use-candidaturas";
+import { useState } from "react";
 
 interface OpportunityActionsProps {
   opportunityId: string;
@@ -13,6 +18,10 @@ interface OpportunityActionsProps {
 export function OpportunityActions({ opportunityId, currentStatus }: OpportunityActionsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [comunicado, setComunicado] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const { data: candidaturas } = useCandidatos(parseInt(opportunityId));
 
   // Mutation to update opportunity status
   const updateStatusMutation = useMutation({
@@ -42,12 +51,55 @@ export function OpportunityActions({ opportunityId, currentStatus }: Opportunity
     },
   });
 
-  const handleSendMessage = () => {
-    // TODO: Implementar funcionalidade de enviar comunicado
-    toast({
-      title: "Funcionalidade em desenvolvimento",
-      description: "A funcionalidade de enviar comunicado será implementada em breve.",
-    });
+  // Mutation to send message to all candidates
+  const sendCommunicationMutation = useMutation({
+    mutationFn: async (message: string) => {
+      if (!candidaturas || candidaturas.length === 0) {
+        throw new Error('Nenhum candidato encontrado');
+      }
+
+      // Send message to each candidate
+      const promises = candidaturas.map(candidatura => 
+        apiFetch('http://localhost:8000/mensagens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinatario_id: candidatura.candidato.id,
+            conteudo: message,
+          }),
+        })
+      );
+
+      const responses = await Promise.all(promises);
+      const failedRequests = responses.filter(response => !response.ok);
+      
+      if (failedRequests.length > 0) {
+        throw new Error(`Falha ao enviar ${failedRequests.length} mensagens`);
+      }
+      
+      return responses;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Comunicado enviado!",
+        description: `Mensagem enviada para ${candidaturas?.length || 0} candidatos.`,
+      });
+      setComunicado("");
+      setIsDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao enviar comunicado",
+        description: error.message || "Não foi possível enviar o comunicado. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendCommunication = () => {
+    if (comunicado.trim()) {
+      sendCommunicationMutation.mutate(comunicado.trim());
+    }
   };
 
   const handleStatusChange = () => {
@@ -84,14 +136,57 @@ export function OpportunityActions({ opportunityId, currentStatus }: Opportunity
         <CardTitle>Ações</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button 
-          className="w-full flex justify-start" 
-          variant="outline"
-          onClick={handleSendMessage}
-        >
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Enviar comunicado aos candidatos
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="w-full flex justify-start" 
+              variant="outline"
+              disabled={!candidaturas || candidaturas.length === 0}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Enviar comunicado aos candidatos {candidaturas && candidaturas.length > 0 && `(${candidaturas.length})`}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Enviar Comunicado aos Candidatos</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="comunicado">Mensagem</Label>
+                <Textarea
+                  id="comunicado"
+                  placeholder="Digite sua mensagem para todos os candidatos..."
+                  value={comunicado}
+                  onChange={(e) => setComunicado(e.target.value)}
+                  className="min-h-32 mt-2"
+                  maxLength={1000}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {comunicado.length}/1000 caracteres • Será enviado para {candidaturas?.length || 0} candidatos
+                </p>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSendCommunication}
+                  disabled={sendCommunicationMutation.isPending || !comunicado.trim()}
+                  className="flex-1"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {sendCommunicationMutation.isPending ? "Enviando..." : "Enviar Comunicado"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  disabled={sendCommunicationMutation.isPending}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         
         {statusButtonConfig && (
           <Button 

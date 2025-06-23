@@ -2,7 +2,7 @@ import { ProfessorHeader } from "@/components/layout/ProfessorHeader";
 import { ProfessorOpportunityHeader } from "@/components/professor/ProfessorOpportunityHeader";
 import { OpportunityDescription } from "@/components/opportunity/OpportunityDescription";
 import { OpportunityBenefits } from "@/components/professor/OpportunityBenefits";
-import { OpportunityMetrics } from "@/components/professor/OpportunityMetrics";
+import { OpportunityMetricsReal } from "@/components/professor/OpportunityMetricsReal";
 import { StudentCandidatesList } from "@/components/professor/StudentCandidatesList";
 import { OpportunityActions } from "@/components/professor/OpportunityActions";
 import { OpportunityInterests } from "@/components/professor/OpportunityInterests";
@@ -53,15 +53,9 @@ export default function ProfessorOpportunityDetail() {
               
               <OpportunityInterests interests={opportunity.interests} />
               
-              <OpportunityMetrics 
-                totalCandidates={opportunity.metrics.totalCandidates}
-                eligibleCandidates={opportunity.metrics.eligibleCandidates}
-                withMotivationLetter={opportunity.metrics.withMotivationLetter}
-                courseDistribution={opportunity.metrics.courseDistribution}
-                semesterDistribution={opportunity.metrics.semesterDistribution}
-              />
+              <OpportunityMetricsReal vagaId={opportunity.id} />
               
-              <StudentCandidatesList candidates={opportunity.candidates} />
+              <StudentCandidatesList vagaId={opportunity.id} />
             </div>
             
             <div className="space-y-6">

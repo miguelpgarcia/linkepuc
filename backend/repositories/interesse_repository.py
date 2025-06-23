@@ -59,3 +59,28 @@ def add_user_interests(db: Session, usuario_id: int, interesses: list[str]):
             db.add(user_interest)
     
     db.commit()
+
+def update_user_interests(db: Session, usuario_id: int, interesses: list[str]):
+    """Update user interests by replacing all existing interests with new ones."""
+    # First, remove all existing user interests
+    db.query(InteresseUsuario).filter(InteresseUsuario.usuario_id == usuario_id).delete()
+    
+    # Then add the new interests
+    for interesse_nome in interesses:
+        # Check if interest exists
+        interesse = db.query(Interesses).filter(Interesses.nome == interesse_nome).first()
+        
+        if not interesse:
+            # Create new interest if it doesn't exist
+            interesse = Interesses(nome=interesse_nome)
+            db.add(interesse)
+            db.flush()  # Flush to get the ID
+        
+        # Create new user-interest relationship
+        user_interest = InteresseUsuario(
+            usuario_id=usuario_id,
+            interesse_id=interesse.id
+        )
+        db.add(user_interest)
+    
+    db.commit()
