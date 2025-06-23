@@ -5,6 +5,7 @@ from repositories.vaga_repository import (
     get_vagas,
     get_vaga,
     update_vaga,
+    update_vaga_status,
     delete_vaga,
     get_tipos_vaga,
     get_vagas_by_professor,
@@ -37,6 +38,9 @@ class VagaUpdate(BaseModel):
     titulo: str
     descricao: str
     prazo: str
+
+class VagaStatusUpdate(BaseModel):
+    status: str
 
 def get_db():
     db = SessionLocal()
@@ -92,6 +96,26 @@ async def update_vaga_endpoint(id: int, vaga: VagaUpdate, db: Session = Depends(
     if not updated:
         raise HTTPException(status_code=404, detail="Vaga not found")
     return updated
+
+@vaga_router.put("/{id}/status")
+async def update_vaga_status_endpoint(id: int, status_update: VagaStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # First check if the vaga exists and belongs to the current user
+    vaga = get_vaga(db, id)
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga not found")
+    
+    if vaga.autor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this vaga")
+    
+    # Validate status values
+    valid_statuses = ["aguardando", "em_analise", "finalizada", "encerrada", "em_andamento"]
+    if status_update.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    updated = update_vaga_status(db, id, status_update.status)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Failed to update vaga status")
+    return {"message": "Vaga status updated successfully", "new_status": status_update.status}
 
 @vaga_router.delete("/{id}")
 async def delete_vaga_endpoint(id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):

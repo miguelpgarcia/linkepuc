@@ -71,6 +71,14 @@ def update_vaga(db: Session, vaga_id: int, titulo: str, descricao: str, prazo: s
         db.refresh(vaga)
     return vaga
 
+def update_vaga_status(db: Session, vaga_id: int, status: str):
+    vaga = db.query(Vagas).filter(Vagas.id == vaga_id).first()
+    if vaga:
+        vaga.status = status
+        db.commit()
+        db.refresh(vaga)
+    return vaga
+
 def delete_vaga(db: Session, vaga_id: int):
     vaga = db.query(Vagas).filter(Vagas.id == vaga_id).first()
     if vaga:

@@ -307,7 +307,7 @@ export default function Profile() {
                 <p className="text-sm text-muted-foreground">
                   Membro desde {new Date(profileData.criado_em).toLocaleDateString('pt-BR')}
                 </p>
-              </div>
+                    </div>
               {isOwnProfile && (
                 <div className="flex gap-2">
                   {isEditing ? (
@@ -337,9 +337,9 @@ export default function Profile() {
                   )}
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </CardContent>
+            </Card>
 
         {/* Hidden file input for avatar upload */}
         <input
@@ -376,7 +376,7 @@ export default function Profile() {
                       placeholder="Descreva seus interesses, experiências e objetivos..."
                       className="min-h-32"
                     />
-                  </div>
+                    </div>
                 ) : (
                   <div>
                     {profileData.sobre ? (
@@ -391,7 +391,7 @@ export default function Profile() {
                         }
                       </p>
                     )}
-                  </div>
+                </div>
                 )}
               </CardContent>
             </Card>
@@ -409,8 +409,8 @@ export default function Profile() {
                       <Badge key={interesse.id} variant="secondary">
                         {interesse.nome}
                       </Badge>
-                    ))}
-                  </div>
+                  ))}
+                </div>
                 ) : (
                   <p className="text-muted-foreground italic">
                     {isOwnProfile 

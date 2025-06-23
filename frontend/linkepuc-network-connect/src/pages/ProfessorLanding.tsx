@@ -2,6 +2,8 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, UserPlus, Share, Eye, GraduationCap } from "lucide-react";
+import { ProfessorHeader } from "@/components/layout/ProfessorHeader";
+import { useAuth } from "@/AuthContext";
 
 const professorSteps = [
   {
@@ -25,10 +27,13 @@ const professorSteps = [
 ];
 
 export default function ProfessorLanding() {
+  const { user } = useAuth();
+  
   return (
     <div className="min-h-screen">
+      {user && !user.isStudent && <ProfessorHeader />}
       <div className="bg-gradient-to-b from-white to-secondary/20">
-        <div className="container mx-auto pt-12">
+        <div className={`container mx-auto ${user && !user.isStudent ? 'pt-6' : 'pt-12'}`}>
           {/* Professor Hero Section */}
           <div className="text-center max-w-3xl mx-auto mb-12">
             <div className="mb-4 p-3 bg-primary/10 inline-block rounded-full">

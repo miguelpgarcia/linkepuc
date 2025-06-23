@@ -66,7 +66,10 @@ export default function ProfessorOpportunityDetail() {
             
             <div className="space-y-6">
               <OpportunityBenefits benefits={opportunity.benefits} />
-              <OpportunityActions />
+              <OpportunityActions 
+                opportunityId={opportunity.id}
+                currentStatus={opportunity.status}
+              />
             </div>
           </div>
         </div>
