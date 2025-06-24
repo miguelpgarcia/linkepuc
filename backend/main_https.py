@@ -55,16 +55,29 @@ async def hello_world():
 if __name__ == "__main__":
     import uvicorn
     
-    # Check if SSL certificates exist
+    # Check for Let's Encrypt certificates first
+    letsencrypt_key = Path("/etc/letsencrypt/live/api.linkepuc.com/privkey.pem")
+    letsencrypt_cert = Path("/etc/letsencrypt/live/api.linkepuc.com/fullchain.pem")
+    
+    # Fallback to self-signed certificates
     ssl_key = Path("ssl/key.pem")
     ssl_cert = Path("ssl/cert.pem")
     
-    if ssl_key.exists() and ssl_cert.exists():
-        print("🔒 Starting server with HTTPS (SSL certificates found)")
+    if letsencrypt_key.exists() and letsencrypt_cert.exists():
+        print("🔒 Starting server with Let's Encrypt HTTPS")
         uvicorn.run(
             app, 
             host="0.0.0.0", 
-            port=8000,
+            port=443,  # Standard HTTPS port
+            ssl_keyfile=str(letsencrypt_key),
+            ssl_certfile=str(letsencrypt_cert)
+        )
+    elif ssl_key.exists() and ssl_cert.exists():
+        print("🔒 Starting server with self-signed HTTPS (SSL certificates found)")
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=443,  # Standard HTTPS port
             ssl_keyfile=str(ssl_key),
             ssl_certfile=str(ssl_cert)
         )

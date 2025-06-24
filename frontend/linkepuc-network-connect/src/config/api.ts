@@ -5,9 +5,8 @@
 
 // Environment-based API base URL
 const getApiBaseUrl = (): string => {
-
-  // Development/local  
-  return 'https://167.99.145.60:8000';
+  // Use subdomain for backend API
+  return 'https://api.linkepuc.com';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
