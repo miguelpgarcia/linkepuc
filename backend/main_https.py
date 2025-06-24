@@ -27,7 +27,9 @@ app.add_middleware(
         "http://localhost:5173", 
         "http://localhost:8080", 
         "http://localhost:4173",
-        "https://miguelpgarcia.github.io"
+        "https://miguelpgarcia.github.io",
+        "http://linkepuc.com",
+        "https://linkepuc.com"
     ],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
