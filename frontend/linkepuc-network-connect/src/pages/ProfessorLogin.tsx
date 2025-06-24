@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { GraduationCap, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { API_ENDPOINTS } from "@/config/api";
+import { useAuth } from "@/AuthContext";
 
 export default function ProfessorLogin() {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ export default function ProfessorLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +40,8 @@ export default function ProfessorLogin() {
         throw new Error("Esta conta não tem permissão de professor");
       }
 
-      localStorage.setItem("token", data.access_token);
+      // Use AuthContext login function instead of direct localStorage
+      login(data.access_token);
       localStorage.setItem("isStudent", "false");
 
       toast({
