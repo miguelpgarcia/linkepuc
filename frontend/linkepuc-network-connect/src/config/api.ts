@@ -6,8 +6,8 @@
 // Environment-based API base URL
 const getApiBaseUrl = (): string => {
 
-  // Development/local
-  return 'http://167.99.145.60:8000';
+  // Development/local  
+  return 'https://167.99.145.60:8000';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
