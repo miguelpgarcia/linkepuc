@@ -29,8 +29,22 @@ import { apiFetch } from "@/apiFetch";
 import { mapBackendToFrontendOpportunities } from "./pages/Opportunities";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useStaticData } from "./hooks/use-static-data";
 
 const queryClient = new QueryClient();
+
+function StaticDataLoader() {
+  // Load static data IMMEDIATELY when app starts (before login)
+  const { isLoading, isReady } = useStaticData();
+  
+  useEffect(() => {
+    if (isReady) {
+      console.log("✅ Static data loaded successfully!");
+    }
+  }, [isReady]);
+
+  return null;
+}
 
 function PrefetchData() {
   const queryClient = useQueryClient();
@@ -71,6 +85,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <StaticDataLoader />
       <PrefetchData />
       <BrowserRouter>
         <Routes>

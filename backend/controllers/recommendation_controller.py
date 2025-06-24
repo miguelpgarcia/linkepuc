@@ -52,10 +52,19 @@ async def get_user_recommendations(
         )
     
     try:
-        # Just get existing recommendations (no refresh to keep it fast)
+        # Get existing recommendations
         recommendations = recommendation_service.get_user_recommendations(
             db, current_user.id, limit
         )
+        
+        # If no recommendations exist, generate them in background (first-time user)
+        if not recommendations:
+            # Check if user should get fresh recommendations
+            if recommendation_service.should_refresh_recommendations(db, current_user.id, max_age_hours=24):
+                # Generate recommendations for first-time users (but don't wait for it)
+                recommendation_service.calculate_and_store_recommendations(db, current_user.id)
+                # Return empty for now, they'll get recommendations on next request
+                return []
         
         return recommendations
         

@@ -28,7 +28,7 @@ export function ProfessorHeader() {
 
   // Fetch current user's profile data for avatar
   const { data: profileData } = useQuery<UserProfile>({
-    queryKey: ['header-profile', user?.id],
+    queryKey: ['user-profile', user?.id], // Unified key for user profile
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       const response = await apiFetch(`http://localhost:8000/users/${user.id}`);

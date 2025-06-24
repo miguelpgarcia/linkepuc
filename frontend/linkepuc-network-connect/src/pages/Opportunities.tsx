@@ -13,6 +13,7 @@ import { CurriculumPrompt } from "@/components/opportunities/CurriculumPrompt";
 import { apiFetch } from "@/apiFetch";
 import { useQuery } from "@tanstack/react-query";
 import { useCurriculumStatus } from "@/hooks/use-curriculum-status";
+import { useGlobalData } from "@/hooks/use-global-data";
 import {
   Tooltip,
   TooltipContent,
@@ -40,31 +41,23 @@ export default function Opportunities() {
   // Check curriculum status
   const { data: curriculumStatus } = useCurriculumStatus();
 
-  // Fetch filters with React Query
-  const { data: filtersData, isLoading: isLoadingFilters } = useQuery({
-    queryKey: ['filters'],
-    queryFn: async () => {
-      const [typesResponse, departmentsResponse] = await Promise.all([
-        apiFetch("http://localhost:8000/vagas/tipo"),
-        apiFetch("http://localhost:8000/departamentos"),
-      ]);
+  // Use centralized global data instead of making duplicate API calls
+  const { types: rawTypes, departments: rawDepartments, isLoading: isLoadingFilters } = useGlobalData();
 
-      const typesData = await typesResponse.json();
-      const departmentsData = await departmentsResponse.json();
-
-      return {
-        types: typesData.map((type: { id: number; nome: string }) => ({
-          id: type.id,
-          value: type.id.toString(),
-          label: type.nome,
-          color: "bg-blue-100 text-blue-800",
-        })),
-        departments: ["Todos os Departamentos", ...departmentsData.map((dept: { id: string; name: string }) => dept.name)],
-      };
-    },
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    gcTime: 30 * 60 * 1000,  // Keep unused data for 30 minutes
-  });
+  // Transform data to the format expected by this component
+  const filtersData = useMemo(() => {
+    if (!rawTypes.length || !rawDepartments.length) return null;
+    
+    return {
+      types: rawTypes.map((type: { id: number; nome: string }) => ({
+        id: type.id,
+        value: type.id.toString(),
+        label: type.nome,
+        color: "bg-blue-100 text-blue-800",
+      })),
+      departments: ["Todos os Departamentos", ...rawDepartments.map((dept: { id: number; name: string }) => dept.name)],
+    };
+  }, [rawTypes, rawDepartments]);
 
   // Fetch opportunities with React Query
   const { data: opportunitiesData, isLoading: isLoadingOpportunities } = useQuery({
@@ -145,16 +138,7 @@ export default function Opportunities() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-muted/20 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando oportunidades...</p>
-        </div>
-      </div>
-    );
-  }
+  // Remove the full-page loading state - we'll show it in the opportunities section instead
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -251,7 +235,12 @@ export default function Opportunities() {
                 )}
               </div>
 
-              {filteredOpportunities.length > 0 ? (
+              {isLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Carregando oportunidades...</p>
+                </div>
+              ) : filteredOpportunities.length > 0 ? (
                 <>
                   <div className="space-y-4">
                     {filteredOpportunities.map((opportunity) => (

@@ -11,6 +11,7 @@ from repositories.vaga_repository import (
     get_vagas_by_professor,
     get_vagas_cached,
 )
+from services.cache_service import static_cache
 from models.base import SessionLocal
 from pydantic import BaseModel
 from schemas.vaga_schema import VagaResponse
@@ -76,11 +77,12 @@ async def get_new_vaga_data():
     return {"message": "This endpoint is for fetching data to create a new vaga. Send a POST request to /vagas/ to create one."}
 
 @vaga_router.get("/tipo")
-async def get_vagas_by_tipo(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
-    print("Fetching tipos")
-    tipos = get_tipos_vaga(db)
+async def get_vagas_by_tipo():
+    """Get opportunity types - cached and public (no auth needed)"""
+    print("Fetching tipos (cached)")
+    tipos = static_cache.get_opportunity_types()
     if not tipos:
-        raise HTTPException(status_code=404, detail="No vagas found for this tipo")
+        raise HTTPException(status_code=404, detail="No opportunity types found")
     return tipos
 
 @vaga_router.get("/professor", response_model=List[VagaResponse])

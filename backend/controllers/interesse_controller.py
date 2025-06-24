@@ -13,6 +13,7 @@ from models.base import SessionLocal
 from pydantic import BaseModel
 from dependecies import get_current_user
 from services.recommendation_service import RecommendationService
+from services.cache_service import static_cache
 from typing import List
 
 
@@ -40,8 +41,10 @@ async def create_interesse_endpoint(interesse: InteresseCreate, db: Session = De
     return create_interesse(db, interesse.nome)
 
 @interesse_router.get("/")
-async def read_interesses_endpoint(db: Session = Depends(get_db)):
-    return get_interesses(db)
+async def read_interesses_endpoint():
+    """Get interests - cached and public (no auth needed)"""
+    print("Fetching interesses (cached)")
+    return static_cache.get_interests()
 
 @interesse_router.get("/{id}")
 async def read_interesse_endpoint(id: int, db: Session = Depends(get_db)):

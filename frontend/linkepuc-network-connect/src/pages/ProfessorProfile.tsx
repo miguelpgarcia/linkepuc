@@ -73,7 +73,7 @@ export default function ProfessorProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professor-profile', profileId] });
-      queryClient.invalidateQueries({ queryKey: ['header-profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
       toast({ title: "Perfil atualizado com sucesso!" });
     },
     onError: () => {
@@ -96,7 +96,7 @@ export default function ProfessorProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professor-profile', profileId] });
-      queryClient.invalidateQueries({ queryKey: ['header-profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
       toast({ title: "Foto de perfil atualizada!" });
       setIsUploadingAvatar(false);
     },
@@ -117,7 +117,7 @@ export default function ProfessorProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professor-profile', profileId] });
-      queryClient.invalidateQueries({ queryKey: ['header-profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
       toast({ title: "Foto de perfil removida!" });
     },
     onError: () => {

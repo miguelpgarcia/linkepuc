@@ -28,7 +28,7 @@ export function Header() {
 
   // Fetch current user's profile data for avatar
   const { data: profileData } = useQuery<UserProfile>({
-    queryKey: ['header-profile', user?.id],
+    queryKey: ['user-profile', user?.id], // Unified key for user profile
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       const response = await apiFetch(`http://localhost:8000/users/${user.id}`);
@@ -36,7 +36,8 @@ export function Header() {
       return response.json();
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes - user data doesn't change frequently
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
   });
 
   const toggleMobileMenu = () => {

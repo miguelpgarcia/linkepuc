@@ -148,12 +148,10 @@ class PopularOpportunitiesStrategy(RecommendationStrategy):
         ).group_by(Vagas.id, Vagas.titulo).all()
         
         if not vaga_popularity:
-            print("gay1")
             return recommendations
         
         # Calculate max candidates for normalization
         max_candidates = max([vp.candidate_count for vp in vaga_popularity])
-        print(f"max_candidates: {max_candidates}")
         
         for vaga_pop in vaga_popularity:
 

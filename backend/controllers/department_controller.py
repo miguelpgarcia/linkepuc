@@ -5,6 +5,7 @@ from repositories.department_repository import (
 )
 from models.base import SessionLocal
 from pydantic import BaseModel
+from services.cache_service import static_cache
 
 departamento_router = APIRouter()
 from dependecies import get_current_user
@@ -23,7 +24,7 @@ def get_db():
 
 
 @departamento_router.get("/")
-async def read_departamento_endpoint(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)) -> list[DepartamentoGet]:
-    user_id = user_id if user_id else 1  # Default to 1 if no user_id is provided
-    print(user_id)
-    return get_departamento(db)
+async def read_departamento_endpoint():
+    """Get departments - cached and public (no auth needed)"""
+    print("Fetching departamentos (cached)")
+    return static_cache.get_departments()
