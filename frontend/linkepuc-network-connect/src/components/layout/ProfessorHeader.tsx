@@ -99,7 +99,7 @@ export function ProfessorHeader() {
           <Link to="/professor" className="flex items-center gap-2">
             <div className="relative h-8 w-8">
               <img 
-                src="https://i.ibb.co/QvHLCCn6/600b30a3-851a-493b-98ca-81653ff0f5bc.png" 
+                src={`${import.meta.env.BASE_URL}lovable-uploads/600b30a3-851a-493b-98ca-81653ff0f5bc.png`} 
                 alt="LinkePuc" 
                 className="h-8"
               />
