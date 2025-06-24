@@ -46,7 +46,7 @@ export function CurriculumUpload() {
       </div>
       <div className="mt-4 md:mt-0">
         <img
-          src="/lovable-uploads/600b30a3-851a-493b-98ca-81653ff0f5bc.png"
+          src="https://i.ibb.co/QvHLCCn6/600b30a3-851a-493b-98ca-81653ff0f5bc.png"
           alt="Importar Currículo"
           className="h-20 mx-auto md:mx-0"
         />
