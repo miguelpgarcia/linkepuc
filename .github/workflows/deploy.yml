@@ -39,7 +39,7 @@ jobs:
       - name: Build
         run: |
           cd frontend/linkepuc-network-connect
-          npm run build
+          NODE_ENV=production npm run build
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
