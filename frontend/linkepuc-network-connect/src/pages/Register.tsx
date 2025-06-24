@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +89,7 @@ export default function Register() {
   });
   
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Fetch available interests from the backend
   useEffect(() => {
@@ -204,7 +206,7 @@ export default function Register() {
     
       // Redirect to login page
     setTimeout(() => {
-        window.location.href = "/login";
+        navigate("/login");
     }, 2000);
     } catch (error) {
       console.error("Registration error:", error);

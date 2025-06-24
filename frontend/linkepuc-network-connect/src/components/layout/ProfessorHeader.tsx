@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,6 +26,7 @@ export function ProfessorHeader() {
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch current user's profile data for avatar
   const { data: profileData } = useQuery<UserProfile>({
@@ -46,7 +47,7 @@ export function ProfessorHeader() {
 
   const handleLogout = () => {
     logout();
-    window.location.href = "/professor/login";
+    navigate("/professor/login");
   };
 
   // Get user initials for fallback

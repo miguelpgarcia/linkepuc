@@ -147,7 +147,7 @@ export default function ProfessorRegister() {
     
       // Redirect to login page
     setTimeout(() => {
-        window.location.href = "/professor/login";
+        navigate("/professor/login");
       }, 2000);
     } catch (error) {
       toast({
