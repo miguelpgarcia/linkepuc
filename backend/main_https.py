@@ -11,6 +11,8 @@ from controllers.mensagem_controller import mensagem_router
 from models.base import Base, engine
 from controllers.candidato_vaga_controller import candidato_vaga_router
 from controllers.recommendation_controller import recommendation_router
+import os
+from pathlib import Path
 
 # Initialize database
 Base.metadata.create_all(bind=engine)
@@ -50,10 +52,21 @@ async def hello_world():
 
 if __name__ == "__main__":
     import uvicorn
-    # For HTTPS, you need SSL certificates
-    # Option 1: Self-signed (for testing)
-    # uvicorn.run(app, host="0.0.0.0", port=8000, ssl_keyfile="key.pem", ssl_certfile="cert.pem")
     
-    # Option 2: Let's Encrypt or proper SSL (recommended for production)
-    # For now, running HTTP - you'll need to set up a reverse proxy (nginx) for HTTPS
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Check if SSL certificates exist
+    ssl_key = Path("ssl/key.pem")
+    ssl_cert = Path("ssl/cert.pem")
+    
+    if ssl_key.exists() and ssl_cert.exists():
+        print("🔒 Starting server with HTTPS (SSL certificates found)")
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=8000,
+            ssl_keyfile=str(ssl_key),
+            ssl_certfile=str(ssl_cert)
+        )
+    else:
+        print("⚠️  Starting server with HTTP (no SSL certificates found)")
+        print("💡 To enable HTTPS, run: python setup_https.py")
+        uvicorn.run(app, host="0.0.0.0", port=8000) 
