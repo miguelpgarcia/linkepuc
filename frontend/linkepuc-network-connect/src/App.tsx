@@ -88,7 +88,7 @@ const App = () => (
       <Sonner />
       <StaticDataLoader />
       <PrefetchData />
-      <BrowserRouter basename="/linkepuc">
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
