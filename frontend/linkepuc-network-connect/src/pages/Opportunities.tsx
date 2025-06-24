@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface Opportunity {
   id: number;
@@ -63,7 +64,7 @@ export default function Opportunities() {
   const { data: opportunitiesData, isLoading: isLoadingOpportunities } = useQuery({
     queryKey: ['opportunities', page], // Only depend on page number
     queryFn: async () => {
-      const response = await apiFetch(`http://localhost:8000/vagas/?skip=${page * PAGE_SIZE}&limit=${PAGE_SIZE}`);
+      const response = await apiFetch(API_ENDPOINTS.VAGAS.PAGINATED(page * PAGE_SIZE, PAGE_SIZE));
       const data = await response.json();
       return data;
     },

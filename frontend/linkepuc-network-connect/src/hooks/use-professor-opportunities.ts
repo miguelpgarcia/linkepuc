@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 
 export interface ProfessorOpportunity {
   id: number;
@@ -32,7 +33,7 @@ export interface ProfessorOpportunity {
 // Fetch opportunities from the API
 const fetchOpportunities = async (): Promise<ProfessorOpportunity[]> => {
   try {
-    const response = await apiFetch("http://localhost:8000/vagas/professor");
+    const response = await apiFetch(API_ENDPOINTS.VAGAS.PROFESSOR);
     if (!response.ok) {
       throw new Error("Failed to fetch opportunities");
     }
@@ -48,7 +49,7 @@ const fetchOpportunities = async (): Promise<ProfessorOpportunity[]> => {
 // Fetch a single opportunity
 const fetchOpportunity = async (id: string): Promise<ProfessorOpportunity> => {
   try {
-    const response = await apiFetch(`http://localhost:8000/vagas/${id}`);
+    const response = await apiFetch(API_ENDPOINTS.VAGAS.BY_ID(id));
     if (!response.ok) {
       throw new Error("Failed to fetch opportunity");
     }
@@ -77,7 +78,7 @@ export function useProfessorOpportunities() {
   const createOpportunity = useMutation({
     mutationFn: async (newOpportunity: Omit<ProfessorOpportunity, "id">) => {
       try {
-        const response = await apiFetch("http://localhost:8000/vagas", {
+        const response = await apiFetch(API_ENDPOINTS.VAGAS.BASE, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -104,7 +105,7 @@ export function useProfessorOpportunities() {
   const updateOpportunity = useMutation({
     mutationFn: async ({ id, ...data }: ProfessorOpportunity) => {
       try {
-        const response = await apiFetch(`http://localhost:8000/vagas/${id}`, {
+        const response = await apiFetch(API_ENDPOINTS.VAGAS.BY_ID(id), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -130,7 +131,7 @@ export function useProfessorOpportunities() {
   // Mutation for deleting an opportunity
   const deleteOpportunity = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`http://localhost:8000/vagas/${id}`, {
+      const response = await fetch(API_ENDPOINTS.VAGAS.BY_ID(id), {
         method: "DELETE",
       });
       if (!response.ok) {

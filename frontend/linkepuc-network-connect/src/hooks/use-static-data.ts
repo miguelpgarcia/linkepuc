@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface OpportunityType {
   id: number;
@@ -27,7 +28,7 @@ export function useStaticData() {
     queryKey: ["static-opportunity-types"],
     queryFn: async () => {
       console.log("🚀 Loading static tipos (pre-login)");
-      const response = await fetch("http://localhost:8000/vagas/tipo"); // Use fetch, not apiFetch (no auth needed)
+      const response = await fetch(API_ENDPOINTS.VAGAS.TIPOS); // Use fetch, not apiFetch (no auth needed)
       return response.json();
     },
     staleTime: Infinity, // NEVER refetch - data never changes
@@ -39,7 +40,7 @@ export function useStaticData() {
     queryKey: ["static-departments"],
     queryFn: async () => {
       console.log("🚀 Loading static departamentos (pre-login)");
-      const response = await fetch("http://localhost:8000/departamentos/");
+      const response = await fetch(API_ENDPOINTS.DEPARTAMENTOS.BASE);
       return response.json();
     },
     staleTime: Infinity, // NEVER refetch - data rarely changes
@@ -51,7 +52,7 @@ export function useStaticData() {
     queryKey: ["static-interests"],
     queryFn: async () => {
       console.log("🚀 Loading static interesses (pre-login)");
-      const response = await fetch("http://localhost:8000/interesses/");
+      const response = await fetch(API_ENDPOINTS.INTERESSES.BASE);
       return response.json();
     },
     staleTime: Infinity, // NEVER refetch - data rarely changes

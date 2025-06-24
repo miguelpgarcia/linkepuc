@@ -12,6 +12,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useSearchParams } from "react-router-dom";
+import { API_ENDPOINTS } from "@/config/api";
 
 export default function ProfessorMessages() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -28,7 +29,7 @@ export default function ProfessorMessages() {
   const { data: selectedUserInfo } = useQuery({
     queryKey: ['user', selectedUserId],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:8000/users/${selectedUserId}`, {
+      const response = await fetch(API_ENDPOINTS.USERS.BY_ID(selectedUserId), {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -62,7 +63,7 @@ export default function ProfessorMessages() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ destinatario_id, conteudo }: { destinatario_id: number; conteudo: string }) => {
-      const res = await fetch("http://localhost:8000/mensagens", {
+      const res = await fetch(API_ENDPOINTS.MENSAGENS.BASE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

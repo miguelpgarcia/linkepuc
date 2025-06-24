@@ -23,7 +23,7 @@ export function InterestsSelector({ selectedInterests, onInterestsChange }: Inte
   useEffect(() => {
     async function fetchInterests() {
       try {
-        const response = await apiFetch("http://localhost:8000/interesses/");
+        const response = await apiFetch(API_ENDPOINTS.INTERESSES.BASE);
         const data = await response.json();
         // Assuming the backend returns an array of objects with an `id` and `nome` field
         const interests = data.map((item: { id: number; nome: string }) => ({

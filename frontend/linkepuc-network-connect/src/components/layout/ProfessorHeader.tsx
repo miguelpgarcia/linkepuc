@@ -14,6 +14,7 @@ import { useAuth } from "@/AuthContext";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface UserProfile {
   id: number;
@@ -31,7 +32,7 @@ export function ProfessorHeader() {
     queryKey: ['user-profile', user?.id], // Unified key for user profile
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
-      const response = await apiFetch(`http://localhost:8000/users/${user.id}`);
+      const response = await apiFetch(API_ENDPOINTS.USERS.BY_ID(user.id));
       if (!response.ok) throw new Error('Failed to fetch profile');
       return response.json();
     },

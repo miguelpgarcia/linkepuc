@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Edit2, Save, X, Trash2, GraduationCap, BookOpen, MessageCircle } from "lucide-react";
 import { apiFetch } from "@/apiFetch";
 import { InterestsEditor } from "@/components/InterestsEditor";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface UserProfile {
   id: number;
@@ -53,7 +54,7 @@ export default function ProfessorProfile() {
     queryKey: ['professor-profile', profileId],
     queryFn: async () => {
       if (!profileId) throw new Error('Profile ID not available');
-      const response = await apiFetch(`http://localhost:8000/users/${profileId}`);
+      const response = await apiFetch(API_ENDPOINTS.USERS.BY_ID(profileId));
       if (!response.ok) throw new Error('Failed to fetch profile');
       return response.json();
     },
@@ -63,7 +64,7 @@ export default function ProfessorProfile() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (updates: { usuario: string; ehaluno: boolean; sobre: string | null }) => {
-      const response = await apiFetch(`http://localhost:8000/users/${profileId}`, {
+      const response = await apiFetch(API_ENDPOINTS.USERS.BY_ID(profileId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -87,7 +88,7 @@ export default function ProfessorProfile() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await apiFetch(`http://localhost:8000/users/${profileId}/avatar`, {
+      const response = await apiFetch(API_ENDPOINTS.USERS.AVATAR(profileId), {
         method: 'POST',
         body: formData,
       });
@@ -109,7 +110,7 @@ export default function ProfessorProfile() {
   // Delete avatar mutation
   const deleteAvatarMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiFetch(`http://localhost:8000/users/${profileId}/avatar`, {
+      const response = await apiFetch(API_ENDPOINTS.USERS.AVATAR(profileId), {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete avatar');

@@ -30,6 +30,7 @@ import { mapBackendToFrontendOpportunities } from "./pages/Opportunities";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useStaticData } from "./hooks/use-static-data";
+import { API_ENDPOINTS } from "@/config/api";
 
 const queryClient = new QueryClient();
 
@@ -55,7 +56,7 @@ function PrefetchData() {
       queryClient.prefetchQuery({
         queryKey: ["opportunities", 0],
         queryFn: async () => {
-          const response = await apiFetch("http://localhost:8000/vagas/?skip=0&limit=8");
+          const response = await apiFetch(API_ENDPOINTS.VAGAS.PAGINATED(0, 8));
           return response.json();
         },
         staleTime: 30 * 1000,
@@ -65,7 +66,7 @@ function PrefetchData() {
       queryClient.prefetchQuery({
         queryKey: ["conversations"],
         queryFn: async () => {
-          const res = await fetch("http://localhost:8000/mensagens/conversas", {
+          const res = await fetch(API_ENDPOINTS.MENSAGENS.CONVERSAS, {
             headers: {
               Authorization: `Bearer ${token}`,
             },

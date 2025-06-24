@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
 import { useToast } from "@/hooks/use-toast";
 import { useCandidatos } from "@/hooks/use-candidaturas";
+import { API_ENDPOINTS } from "@/config/api";
 import { useState } from "react";
 
 interface OpportunityActionsProps {
@@ -26,7 +27,7 @@ export function OpportunityActions({ opportunityId, currentStatus }: Opportunity
   // Mutation to update opportunity status
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
-      const response = await apiFetch(`http://localhost:8000/vagas/${opportunityId}/status`, {
+      const response = await apiFetch(API_ENDPOINTS.VAGAS.STATUS(opportunityId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -60,7 +61,7 @@ export function OpportunityActions({ opportunityId, currentStatus }: Opportunity
 
       // Send message to each candidate
       const promises = candidaturas.map(candidatura => 
-        apiFetch('http://localhost:8000/mensagens', {
+        apiFetch(API_ENDPOINTS.MENSAGENS.BASE, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

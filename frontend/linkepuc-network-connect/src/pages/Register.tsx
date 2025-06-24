@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { API_ENDPOINTS } from "@/config/api";
 
 // Cursos disponíveis na PUC-Rio
 const COURSES = [
@@ -93,7 +94,7 @@ export default function Register() {
     const fetchInterests = async () => {
       try {
         console.log("Attempting to fetch interests...");
-        const response = await fetch("http://localhost:8000/interesses/");
+        const response = await fetch(API_ENDPOINTS.INTERESSES.BASE);
         console.log("Response status:", response.status);
         console.log("Response headers:", response.headers);
         
@@ -144,7 +145,7 @@ export default function Register() {
   
     try {
       // First create the user
-      const userResponse = await fetch("http://localhost:8000/users/", {
+      const userResponse = await fetch(API_ENDPOINTS.USERS.CREATE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,7 +177,7 @@ export default function Register() {
       console.log("Sending interests data:", interestsData);
       
       // Then add interests
-      const interestsResponse = await fetch("http://localhost:8000/interesses/usuario", {
+      const interestsResponse = await fetch(API_ENDPOINTS.INTERESSES.USUARIO, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(interestsData),

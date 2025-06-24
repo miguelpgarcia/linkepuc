@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { API_ENDPOINTS } from "@/config/api";
 
 type ProfessorData = {
   fullName: string;
@@ -108,7 +109,7 @@ export default function ProfessorRegister() {
     
     try {
       // Create the professor user
-      const userResponse = await fetch("http://localhost:8000/users", {
+      const userResponse = await fetch(API_ENDPOINTS.USERS.CREATE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -126,7 +127,7 @@ export default function ProfessorRegister() {
       const userData = await userResponse.json();
       
       // Add professor specialties as interests
-      const interestsResponse = await fetch("http://localhost:8000/interesses/usuario", {
+      const interestsResponse = await fetch(API_ENDPOINTS.INTERESSES.USUARIO, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

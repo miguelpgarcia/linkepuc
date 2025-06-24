@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { API_ENDPOINTS } from "@/config/api";
 
 export default function ProfessorLogin() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ export default function ProfessorLogin() {
     setIsLoading(true);
     
     try {
-      const response = await fetch("http://localhost:8000/users/login", {
+      const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

@@ -132,7 +132,7 @@ export function StudentCandidatesList({ vagaId }: StudentCandidatesListProps) {
                       <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </CardTitle>
                     <CardDescription>
-                      {candidatura.candidato.email} • Candidatura em {new Date(candidatura.criado_em).toLocaleDateString('pt-BR')}
+                      {candidatura.candidato.email || 'Email não informado'} • Candidatura em {new Date(candidatura.criado_em).toLocaleDateString('pt-BR')}
                     </CardDescription>
                   </div>
                 </div>

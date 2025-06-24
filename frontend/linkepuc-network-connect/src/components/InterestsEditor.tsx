@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { X, Plus, Save, Loader2 } from "lucide-react";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface Interest {
@@ -43,7 +44,7 @@ export function InterestsEditor({
   useEffect(() => {
     const fetchInterests = async () => {
       try {
-        const response = await apiFetch("http://localhost:8000/interesses/");
+        const response = await apiFetch(API_ENDPOINTS.INTERESSES.BASE);
         if (!response.ok) throw new Error("Failed to fetch interests");
         const data = await response.json();
         setAvailableInterests(data);
@@ -72,7 +73,7 @@ export function InterestsEditor({
 
     try {
       // Create new interest
-      const response = await apiFetch("http://localhost:8000/interesses/", {
+      const response = await apiFetch(API_ENDPOINTS.INTERESSES.BASE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome: newInterestName.trim() }),
@@ -108,7 +109,7 @@ export function InterestsEditor({
         .filter(interest => selectedInterestIds.includes(interest.id))
         .map(interest => interest.nome);
 
-      const response = await apiFetch(`http://localhost:8000/interesses/usuario/${userId}`, {
+      const response = await apiFetch(API_ENDPOINTS.INTERESSES.BY_USER_ID(userId), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(selectedInterestNames),

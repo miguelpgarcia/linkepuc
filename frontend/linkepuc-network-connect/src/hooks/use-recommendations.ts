@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/apiFetch';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
+import { API_ENDPOINTS } from '@/config/api';
 
 export interface RecommendationStrategy {
   name: string;
@@ -53,7 +54,7 @@ export const useRecommendations = (options: UseRecommendationsOptions = {}) => {
   const { data: recommendations, isLoading, error } = useQuery<Recommendation[]>({
     queryKey: ["recommendations", limit],
     queryFn: async () => {
-      const response = await apiFetch(`http://localhost:8000/recomendacoes/?limit=${limit}`);
+      const response = await apiFetch(`${API_ENDPOINTS.RECOMENDACOES.BASE}?limit=${limit}`);
       if (!response.ok) {
         throw new Error("Failed to fetch recommendations");
       }
@@ -114,7 +115,7 @@ export const useRecommendations = (options: UseRecommendationsOptions = {}) => {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiFetch("http://localhost:8000/recomendacoes/refresh", {
+      const response = await apiFetch(API_ENDPOINTS.RECOMENDACOES.REFRESH, {
         method: "POST",
       });
       if (!response.ok) {
@@ -150,7 +151,7 @@ export const useRecommendationExplanation = (vagaId: number) => {
   const { data: explanation, isLoading, error } = useQuery<RecommendationExplanation>({
     queryKey: ["recommendationExplanation", vagaId],
     queryFn: async () => {
-      const response = await apiFetch(`http://localhost:8000/recomendacoes/explanation/${vagaId}`);
+      const response = await apiFetch(API_ENDPOINTS.RECOMENDACOES.EXPLANATION(vagaId));
       if (!response.ok) {
         throw new Error("Failed to fetch recommendation explanation");
       }
@@ -173,7 +174,7 @@ export function useRecommendationStats() {
   return useQuery({
     queryKey: ['recommendation-stats'],
     queryFn: async () => {
-      const response = await apiFetch('http://localhost:8000/recomendacoes/stats');
+      const response = await apiFetch(API_ENDPOINTS.RECOMENDACOES.STATS);
       if (!response.ok) {
         throw new Error('Failed to fetch recommendation stats');
       }
@@ -188,7 +189,7 @@ export function useBulkRecommendationCalculation() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await apiFetch('http://localhost:8000/recomendacoes/calculate-all', {
+      const response = await apiFetch(API_ENDPOINTS.RECOMENDACOES.CALCULATE_ALL, {
         method: 'POST',
       });
       if (!response.ok) {

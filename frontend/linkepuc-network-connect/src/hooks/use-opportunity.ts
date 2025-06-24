@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 
 export interface Opportunity {
   id: number;
@@ -40,7 +41,7 @@ export const useOpportunity = (id: string) => {
   const { data: opportunity, isLoading, error } = useQuery<Opportunity>({
     queryKey: ["opportunity", id],
     queryFn: async () => {
-      const response = await apiFetch(`http://localhost:8000/vagas/${id}`);
+      const response = await apiFetch(API_ENDPOINTS.VAGAS.BY_ID(id));
       if (!response.ok) {
         throw new Error("Failed to fetch opportunity");
       }

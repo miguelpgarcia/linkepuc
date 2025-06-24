@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { API_ENDPOINTS } from "@/config/api";
 
 export interface Conversation {
   id: number;
@@ -14,7 +15,7 @@ export function useConversations() {
   return useQuery<Conversation[]>({
     queryKey: ["conversations"],
     queryFn: async () => {
-      const res = await fetch("http://localhost:8000/mensagens/conversas", {
+      const res = await fetch(API_ENDPOINTS.MENSAGENS.CONVERSAS, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },

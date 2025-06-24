@@ -17,7 +17,7 @@ export default function VerifyEmail() {
     e.preventDefault();
     
     try {
-      const response = await fetch("http://localhost:8000/users/verify-email", {
+      const response = await fetch(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: verificationCode }),

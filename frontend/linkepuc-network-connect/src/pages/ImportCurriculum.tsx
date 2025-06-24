@@ -10,6 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
 import { useCurriculumStatus } from "@/hooks/use-curriculum-status";
 import { CurriculumViewer } from "@/components/curriculum/CurriculumViewer";
+import { API_ENDPOINTS } from "@/config/api";
 
 export default function ImportCurriculum() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -22,7 +23,7 @@ export default function ImportCurriculum() {
       const formData = new FormData();
       formData.append("file", file);
       
-      const response = await apiFetch("http://localhost:8000/historicos/upload", {
+      const response = await apiFetch(API_ENDPOINTS.HISTORICOS.UPLOAD, {
         method: "POST",
         body: formData,
       });

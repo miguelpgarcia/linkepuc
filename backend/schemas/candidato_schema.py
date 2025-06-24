@@ -25,7 +25,7 @@ class CandidaturaResponse(BaseModel):
 class CandidatoInfo(BaseModel):
     id: int
     usuario: str
-    email: str
+    email: Optional[str] = None
     avatar: Optional[str] = None
     
     class Config:

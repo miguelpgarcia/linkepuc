@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
 import { useToast } from "@/hooks/use-toast";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface CandidaturaCreate {
   carta_motivacao?: string;
@@ -13,7 +14,7 @@ interface CandidaturaStatus {
 interface CandidatoInfo {
   id: number;
   usuario: string;
-  email: string;
+  email?: string;
   avatar?: string;
 }
 
@@ -28,7 +29,7 @@ export function useCandidaturaStatus(vagaId: number) {
   return useQuery<CandidaturaStatus>({
     queryKey: ['candidatura-status', vagaId],
     queryFn: async () => {
-      const response = await apiFetch(`http://localhost:8000/api/candidaturas/vaga/${vagaId}/candidatura-status`);
+      const response = await apiFetch(API_ENDPOINTS.CANDIDATURAS.VAGA_STATUS(vagaId));
       if (!response.ok) {
         throw new Error('Failed to fetch candidatura status');
       }
@@ -44,7 +45,7 @@ export function useCandidatar() {
 
   return useMutation({
     mutationFn: async ({ vagaId, carta_motivacao }: { vagaId: number; carta_motivacao?: string }) => {
-      const response = await apiFetch(`http://localhost:8000/api/candidaturas/vaga/${vagaId}/candidatar`, {
+      const response = await apiFetch(API_ENDPOINTS.CANDIDATURAS.CANDIDATAR(vagaId), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export function useCancelarCandidatura() {
 
   return useMutation({
     mutationFn: async (vagaId: number) => {
-      const response = await apiFetch(`http://localhost:8000/api/candidaturas/vaga/${vagaId}/candidatar`, {
+      const response = await apiFetch(API_ENDPOINTS.CANDIDATURAS.CANDIDATAR(vagaId), {
         method: 'DELETE',
       });
       
@@ -112,7 +113,7 @@ export function useCandidatos(vagaId: number) {
   return useQuery<CandidaturaDetalhada[]>({
     queryKey: ['candidatos', vagaId],
     queryFn: async () => {
-      const response = await apiFetch(`http://localhost:8000/api/candidaturas/vaga/${vagaId}/candidatos`);
+      const response = await apiFetch(API_ENDPOINTS.CANDIDATURAS.CANDIDATOS(vagaId));
       if (!response.ok) {
         throw new Error('Failed to fetch candidates');
       }

@@ -91,7 +91,7 @@ export function OpportunityForm() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await apiFetch("http://localhost:8000/vagas/", {
+      const response = await apiFetch(API_ENDPOINTS.VAGAS.CREATE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

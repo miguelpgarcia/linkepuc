@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface CurriculumStatus {
   has_curriculum: boolean;
@@ -7,7 +8,7 @@ interface CurriculumStatus {
 }
 
 const fetchCurriculumStatus = async (): Promise<CurriculumStatus> => {
-  const response = await apiFetch("http://localhost:8000/historicos/status");
+  const response = await apiFetch(API_ENDPOINTS.HISTORICOS.STATUS);
   if (!response.ok) {
     throw new Error("Failed to fetch curriculum status");
   }

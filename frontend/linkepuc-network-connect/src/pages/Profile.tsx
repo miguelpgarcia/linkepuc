@@ -15,6 +15,7 @@ import { useState, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useNavigate } from "react-router-dom";
 import { InterestsEditor } from "@/components/InterestsEditor";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface UserProfile {
   id: number;
@@ -61,7 +62,7 @@ export default function Profile() {
     queryKey: ['profile', targetUserId],
     queryFn: async () => {
       if (!targetUserId) throw new Error('User ID not available');
-      const response = await apiFetch(`http://localhost:8000/users/${targetUserId}`);
+      const response = await apiFetch(API_ENDPOINTS.USERS.BY_ID(targetUserId));
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('User not found');
@@ -80,7 +81,7 @@ export default function Profile() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await apiFetch(`http://localhost:8000/users/${user.id}/avatar`, {
+      const response = await apiFetch(API_ENDPOINTS.USERS.AVATAR(user.id), {
         method: 'POST',
         body: formData,
       });
@@ -107,7 +108,7 @@ export default function Profile() {
   const deleteAvatarMutation = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
-      const response = await apiFetch(`http://localhost:8000/users/${user.id}/avatar`, {
+      const response = await apiFetch(API_ENDPOINTS.USERS.AVATAR(user.id), {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete avatar');
@@ -133,7 +134,7 @@ export default function Profile() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { usuario: string; sobre: string | null; ehaluno: boolean }) => {
       if (!user?.id) throw new Error('User ID not available');
-      const response = await apiFetch(`http://localhost:8000/users/${user.id}`, {
+      const response = await apiFetch(API_ENDPOINTS.USERS.BY_ID(user.id), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

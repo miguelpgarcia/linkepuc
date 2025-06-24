@@ -1,18 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 import { ProfessorOpportunityDetail } from "@/types/professor";
 
 // Fetch a single opportunity from the API
 const fetchOpportunity = async (id: string): Promise<ProfessorOpportunityDetail> => {
   try {
-    const response = await apiFetch(`http://localhost:8000/vagas/${id}`);
+    const response = await apiFetch(API_ENDPOINTS.VAGAS.BY_ID(id));
     if (!response.ok) {
       throw new Error("Failed to fetch opportunity");
     }
     const data = await response.json();
     
     // Get candidates for this opportunity
-    const candidatesResponse = await apiFetch(`http://localhost:8000/candidaturas/vaga/${id}`);
+    const candidatesResponse = await apiFetch(API_ENDPOINTS.CANDIDATURAS.BY_VAGA(id));
     const candidates = candidatesResponse.ok ? await candidatesResponse.json() : [];
     
     // Calculate course distribution from candidates
