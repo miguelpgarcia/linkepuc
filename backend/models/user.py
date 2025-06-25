@@ -15,7 +15,7 @@ class User(Base):
     criado_em = Column(TIMESTAMP, default=datetime.now)
     avatar = Column(String, nullable=True)
     email_verified = Column(Boolean, default=False)
-    verification_token = Column(String, nullable=True)
+    verification_token = Column(String(500), nullable=True)
     verification_token_expires = Column(TIMESTAMP, nullable=True)
     interesses = relationship("InteresseUsuario", back_populates="usuario")
 

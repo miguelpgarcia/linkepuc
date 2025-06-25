@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { 
   Select,
@@ -20,65 +19,15 @@ type ProfessorData = {
   email: string;
   password: string;
   department: string;
-  specialties: string[];
   bio: string;
-  academicTitle: string;
   role: "professor";
 };
 
-const SPECIALTIES = [
-  "Programação",
-  "Inteligência Artificial",
-  "Ciência de Dados",
-  "Engenharia de Software",
-  "Matemática",
-  "Física",
-  "Química",
-  "Biologia",
-  "Letras",
-  "História",
-  "Economia",
-  "Direito"
-];
-
-// Mock data - in a real app, this would come from an API
-const PROFESSORS = [
-  "Ana Maria Silva",
-  "Carlos Eduardo Santos",
-  "Fernanda Oliveira",
-  "José Roberto Almeida",
-  "Luiza Mendes Costa",
-  "Marcelo Ribeiro",
-  "Patricia Andrade",
-  "Roberto Carlos Pereira",
-  "Silvia Rodrigues",
-  "Thiago Alves Ferreira"
-];
-
-// Mock data - in a real app, this would come from an API
-const DEPARTMENTS = [
-  "Ciência da Computação",
-  "Engenharia Elétrica",
-  "Engenharia Mecânica",
-  "Física",
-  "Matemática",
-  "Química",
-  "Letras",
-  "História",
-  "Geografia",
-  "Economia",
-  "Administração",
-  "Direito"
-];
-
-const ACADEMIC_TITLES = [
-  "Professor Assistente",
-  "Professor Adjunto",
-  "Professor Associado",
-  "Professor Titular",
-  "Professor Visitante",
-  "Professor Emérito"
-];
+type Department = {
+  id: number;
+  name: string;
+  sigla: string;
+};
 
 export default function ProfessorRegister() {
   const [formData, setFormData] = useState<ProfessorData>({
@@ -86,14 +35,34 @@ export default function ProfessorRegister() {
     email: "",
     password: "",
     department: "",
-    specialties: [],
     bio: "",
-    academicTitle: "",
     role: "professor"
   });
   
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(true);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch departments from backend
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.DEPARTAMENTOS.BASE);
+        if (response.ok) {
+          const data = await response.json();
+          setDepartments(data);
+        }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+      } finally {
+        setIsLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,30 +92,14 @@ export default function ProfessorRegister() {
       if (!userResponse.ok) {
         throw new Error("Erro ao criar usuário");
       }
-
-      const userData = await userResponse.json();
-      
-      // Add professor specialties as interests
-      const interestsResponse = await fetch(API_ENDPOINTS.INTERESSES.USUARIO, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usuario_id: userData.user_id,
-          interesses: formData.specialties
-        }),
-      });
-
-      if (!interestsResponse.ok) {
-        throw new Error("Erro ao salvar especialidades");
-      }
     
-    toast({
-      title: "Cadastro realizado com sucesso!",
+      toast({
+        title: "Cadastro realizado com sucesso!",
         description: "Por favor, verifique seu email para ativar sua conta.",
-    });
+      });
     
       // Redirect to login page
-    setTimeout(() => {
+      setTimeout(() => {
         navigate("/professor/login");
       }, 2000);
     } catch (error) {
@@ -184,21 +137,14 @@ export default function ProfessorRegister() {
             <form onSubmit={handleFormSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome completo</Label>
-                <Select
-                  onValueChange={(value) => setFormData({...formData, fullName: value})}
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Nome completo"
                   value={formData.fullName}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione seu nome" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROFESSORS.map((professor) => (
-                      <SelectItem key={professor} value={professor}>
-                        {professor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                  required
+                />
               </div>
               
               <div className="space-y-2">
@@ -226,64 +172,23 @@ export default function ProfessorRegister() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="academicTitle">Título Acadêmico</Label>
-                <Select
-                  onValueChange={(value) => setFormData({...formData, academicTitle: value})}
-                  value={formData.academicTitle}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione seu título acadêmico" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACADEMIC_TITLES.map((title) => (
-                      <SelectItem key={title} value={title}>
-                        {title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="department">Departamento</Label>
                 <Select
                   onValueChange={(value) => setFormData({...formData, department: value})}
                   value={formData.department}
+                  disabled={isLoadingDepartments}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione seu departamento" />
+                    <SelectValue placeholder={isLoadingDepartments ? "Carregando departamentos..." : "Selecione seu departamento"} />
                   </SelectTrigger>
-                  <SelectContent>
-                    {DEPARTMENTS.map((department) => (
-                      <SelectItem key={department} value={department}>
-                        {department}
+                  <SelectContent className="max-h-48 overflow-y-auto">
+                    {departments.map((department) => (
+                      <SelectItem key={department.name} value={department.name}>
+                        {department.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Áreas de especialidade</Label>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  {SPECIALTIES.map((specialty) => (
-                    <div key={specialty} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={specialty}
-                        checked={formData.specialties.includes(specialty)}
-                        onCheckedChange={(checked) => {
-                          setFormData({
-                            ...formData,
-                            specialties: checked
-                              ? [...formData.specialties, specialty]
-                              : formData.specialties.filter((s) => s !== specialty),
-                          });
-                        }}
-                      />
-                      <Label htmlFor={specialty}>{specialty}</Label>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -297,8 +202,8 @@ export default function ProfessorRegister() {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Finalizar cadastro
+              <Button type="submit" className="w-full" disabled={isLoadingDepartments}>
+                {isLoadingDepartments ? "Carregando..." : "Finalizar cadastro"}
               </Button>
             </form>
           </CardContent>
