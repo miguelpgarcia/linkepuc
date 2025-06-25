@@ -1,10 +1,13 @@
 import os
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from typing import List
+from fastapi_mail import FastMail, ConnectionConfig
 from datetime import datetime, timedelta
 import secrets
 from dotenv import load_dotenv
 from pathlib import Path
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import requests
 
 # Load .env from project root regardless of working directory
 env_path = Path(__file__).resolve().parents[2] / ".env"
@@ -46,78 +49,161 @@ async def send_verification_email(email: str, token: str, is_student: bool) -> N
     verification_url = f"https://linkepuc.com/verify-email?token={token}"
     user_type = "aluno" if is_student else "professor"
     
-    message_body = f"""
-    <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <img src="https://i.ibb.co/XZ82w6mP/aa.png"
-                     alt="LinkePuc Logo" 
-                     style="max-width: 200px; height: auto;">
-            </div>
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
-                <h2 style="color: #333; margin-bottom: 20px;">Bem-vindo ao LinkePuc!</h2>
-                <p style="color: #666; line-height: 1.6;">Olá! Obrigado por se cadastrar como {user_type} no LinkePuc.</p>
-                <p style="color: #666; line-height: 1.6;">Para ativar sua conta, por favor clique no botão abaixo:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="{verification_url}" 
-                       style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                        Verificar meu email
-                    </a>
+    # Use SendGrid API (works perfectly on DigitalOcean)
+    print("Sending email using SendGrid API...")
+    try:
+        await send_email_sendgrid(email, verification_url, user_type)
+        print(f"Verification email sent successfully to {email} using SendGrid")
+        return
+    except Exception as e:
+        print(f"SendGrid failed: {str(e)}")
+        raise Exception(f"Failed to send verification email: {str(e)}")
+
+async def send_email_basic_smtp(email: str, verification_url: str, user_type: str):
+    """Fallback email sending using basic smtplib"""
+    import asyncio
+    
+    def send_sync():
+        # Try DigitalOcean-compatible SMTP options
+        smtp_options = [
+            # Port 2525 - allowed on DigitalOcean for email services
+            {"server": "smtp.sendgrid.net", "port": 2525, "use_tls": True},
+            {"server": "smtp.mailgun.org", "port": 2525, "use_tls": True},
+            # Gmail with port 2525 (might work)
+            {"server": "smtp.gmail.com", "port": 2525, "use_tls": True},
+            # Standard ports (likely blocked but worth trying)
+            {"server": "smtp.gmail.com", "port": 587, "use_tls": True},
+            {"server": "smtp.gmail.com", "port": 465, "use_ssl": True},
+        ]
+        
+        for option in smtp_options:
+            try:
+                print(f"Trying basic SMTP: {option['server']}:{option['port']}")
+                
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = "Verifique seu email - LinkePuc"
+                msg['From'] = MAIL_FROM
+                msg['To'] = email
+                
+                html_body = f"""
+                <html>
+                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <img src="https://i.ibb.co/XZ82w6mP/aa.png"
+                                 alt="LinkePuc Logo" 
+                                 style="max-width: 200px; height: auto;">
+                        </div>
+                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+                            <h2 style="color: #333; margin-bottom: 20px;">Bem-vindo ao LinkePuc!</h2>
+                            <p style="color: #666; line-height: 1.6;">Olá! Obrigado por se cadastrar como {user_type} no LinkePuc.</p>
+                            <p style="color: #666; line-height: 1.6;">Para ativar sua conta, por favor clique no botão abaixo:</p>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{verification_url}" 
+                                   style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                                    Verificar meu email
+                                </a>
+                            </div>
+                            <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Este link expirará em 24 horas.</p>
+                            <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Se você não se cadastrou no LinkePuc, por favor ignore este email.</p>
+                        </div>
+                        <div style="text-align: center; margin-top: 30px; color: #666; font-size: 0.9em;">
+                            <p>Atenciosamente,<br>Equipe LinkePuc</p>
+                        </div>
+                    </body>
+                </html>
+                """
+                
+                html_part = MIMEText(html_body, 'html')
+                msg.attach(html_part)
+                
+                if option.get("use_ssl"):
+                    server = smtplib.SMTP_SSL(option["server"], option["port"], timeout=10)
+                else:
+                    server = smtplib.SMTP(option["server"], option["port"], timeout=10)
+                    if option.get("use_tls"):
+                        server.starttls()
+                
+                server.login(MAIL_USERNAME, MAIL_PASSWORD)
+                server.send_message(msg)
+                server.quit()
+                
+                print(f"Email sent successfully using {option['server']}:{option['port']}")
+                return
+                
+            except Exception as e:
+                print(f"Failed with {option['server']}:{option['port']}: {str(e)}")
+                continue
+        
+        raise Exception("All basic SMTP options failed")
+    
+    # Run the synchronous function in a thread pool
+    await asyncio.get_event_loop().run_in_executor(None, send_sync)
+
+async def send_email_sendgrid(email: str, verification_url: str, user_type: str):
+    """Send email using SendGrid API (works perfectly on DigitalOcean)"""
+    import asyncio
+    
+    def send_sendgrid():
+        sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+        if not sendgrid_api_key:
+            raise Exception("SENDGRID_API_KEY not found in environment variables")
+        
+        html_body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <img src="https://i.ibb.co/XZ82w6mP/aa.png"
+                         alt="LinkePuc Logo" 
+                         style="max-width: 200px; height: auto;">
                 </div>
-                <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Este link expirará em 24 horas.</p>
-                <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Se você não se cadastrou no LinkePuc, por favor ignore este email.</p>
-            </div>
-            <div style="text-align: center; margin-top: 30px; color: #666; font-size: 0.9em;">
-                <p>Atenciosamente,<br>Equipe LinkePuc</p>
-            </div>
-        </body>
-    </html>
-    """
-    
-    # Try multiple SMTP configurations for better production compatibility
-    smtp_configs = [
-        # Gmail STARTTLS (port 587)
-        {"port": 587, "starttls": True, "ssl_tls": False},
-        # Gmail SSL (port 465)
-        {"port": 465, "starttls": False, "ssl_tls": True},
-        # Alternative port (port 25)
-        {"port": 25, "starttls": True, "ssl_tls": False}
-    ]
-    
-    for config in smtp_configs:
-        try:
-            print(f"Attempting to send email to {email} using port {config['port']}")
-            
-            conf = ConnectionConfig(
-                MAIL_USERNAME=MAIL_USERNAME,
-                MAIL_PASSWORD=MAIL_PASSWORD,
-                MAIL_FROM=MAIL_FROM,
-                MAIL_PORT=config["port"],
-                MAIL_SERVER=MAIL_SERVER,
-                MAIL_STARTTLS=config["starttls"],
-                MAIL_SSL_TLS=config["ssl_tls"],
-                USE_CREDENTIALS=True
-            )
-            
-            fastmail_instance = FastMail(conf)
-            
-            message = MessageSchema(
-                subject="Verifique seu email - LinkePuc",
-                recipients=[email],
-                body=message_body,
-                subtype="html"
-            )
-            
-            await fastmail_instance.send_message(message)
-            print(f"Verification email sent successfully to {email} using port {config['port']}")
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+                    <h2 style="color: #333; margin-bottom: 20px;">Bem-vindo ao LinkePuc!</h2>
+                    <p style="color: #666; line-height: 1.6;">Olá! Obrigado por se cadastrar como {user_type} no LinkePuc.</p>
+                    <p style="color: #666; line-height: 1.6;">Para ativar sua conta, por favor clique no botão abaixo:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{verification_url}" 
+                           style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Verificar meu email
+                        </a>
+                    </div>
+                    <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Este link expirará em 24 horas.</p>
+                    <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Se você não se cadastrou no LinkePuc, por favor ignore este email.</p>
+                </div>
+                <div style="text-align: center; margin-top: 30px; color: #666; font-size: 0.9em;">
+                    <p>Atenciosamente,<br>Equipe LinkePuc</p>
+                </div>
+            </body>
+        </html>
+        """
+        
+        payload = {
+            "personalizations": [{"to": [{"email": email}]}],
+            "from": {"email": MAIL_FROM},
+            "subject": "Verifique seu email - LinkePuc",
+            "content": [{"type": "text/html", "value": html_body}]
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {sendgrid_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        print(f"Sending email to {email} via SendGrid API")
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+        
+        if response.status_code == 202:
+            print("SendGrid API call successful")
             return
-            
-        except Exception as e:
-            print(f"Failed to send email using port {config['port']}: {str(e)}")
-            continue
+        else:
+            raise Exception(f"SendGrid API failed with status {response.status_code}: {response.text}")
     
-    # If all SMTP methods fail, raise an exception
-    raise Exception("Failed to send verification email: All SMTP configurations failed")
+    # Run the synchronous function in a thread pool
+    await asyncio.get_event_loop().run_in_executor(None, send_sendgrid)
 
 if __name__ == "__main__":
     # Test email configuration
