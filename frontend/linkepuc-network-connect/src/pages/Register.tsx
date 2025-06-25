@@ -126,14 +126,23 @@ export default function Register() {
 
   const handleBasicInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email.endsWith("puc-rio.br")) {
-      toast({
-        title: "Email inválido",
-        description: "Por favor, use seu email institucional (puc-rio.br)",
-        variant: "destructive",
-      });
-      return;
+    
+    // Exception list for testing purposes (same as backend)
+    const exceptionEmails = [
+      "alessandra.dpgarcia@gmail.com"
+    ];
+    
+    if (formData.email && !exceptionEmails.includes(formData.email)) {
+      if (!formData.email.endsWith("puc-rio.br")) {
+        toast({
+          title: "Email inválido",
+          description: "Por favor, use seu email institucional (puc-rio.br)",
+          variant: "destructive",
+        });
+        return;
+      }
     }
+    
     setStep(2);
   };
 
