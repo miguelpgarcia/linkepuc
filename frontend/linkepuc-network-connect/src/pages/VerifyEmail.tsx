@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { API_ENDPOINTS } from "@/config/api";
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
