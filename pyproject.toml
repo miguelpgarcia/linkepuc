@@ -14,7 +14,7 @@ dependencies = [
     "uvicorn",
     "python-dotenv",
     "sqlalchemy>=2.0.40",
-    "psycopg2-binary",
+    "psycopg2",
     "passlib>=1.7.4",
     "python-jose>=3.4.0",
     "python-multipart>=0.0.20",
@@ -29,5 +29,8 @@ dependencies = [
     "fastapi-mail>=1.5.0",
     "pyjwt>=2.10.1",
     "schedule>=1.2.0",
+    "google-api-python-client>=2.173.0",
+    "google-auth-httplib2>=0.2.0",
+    "google-auth-oauthlib>=1.2.2",
 ]
 
