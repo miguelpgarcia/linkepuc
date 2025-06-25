@@ -92,7 +92,7 @@ export default function Login() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu.nome@puc-rio.br"
+                  placeholder="seu.nome@aluno.puc-rio.br ou outro email institucional"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

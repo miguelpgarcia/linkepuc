@@ -156,7 +156,7 @@ export default function ProfessorRegister() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu.nome@puc-rio.br ou @inf.puc-rio.br"
+                  placeholder="seu.nome@puc-rio.br ou outro email institucional"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   required

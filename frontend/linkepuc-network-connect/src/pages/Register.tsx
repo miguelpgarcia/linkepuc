@@ -258,7 +258,7 @@ export default function Register() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="seu.nome@puc-rio.br"
+                    placeholder="seu.nome@aluno.puc-rio.br ou outro email institucional"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     required
