@@ -6,6 +6,7 @@ import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/f
 import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 
 interface InterestsSelectorProps {
   selectedInterests: string[];
@@ -51,15 +52,38 @@ export function InterestsSelector({ selectedInterests, onInterestsChange }: Inte
     const idStr = String(interestId);
     onInterestsChange(selectedInterests.filter((i) => i !== idStr));
   };
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
     const value = inputValue.trim();
     if (!value) return;
 
     // Add new custom interest when Enter is pressed
-    if (e.key === "Enter" && !availableInterests.includes(value)) {
+    if (e.key === "Enter" && !availableInterests.find(interest => interest.nome.toLowerCase() === value.toLowerCase())) {
       e.preventDefault();
-      setAvailableInterests((prev) => [...prev, value]);
-      handleSelect(value);
+      
+      try {
+        // Create new interest on backend
+        const response = await apiFetch(API_ENDPOINTS.INTERESSES.BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nome: value }),
+        });
+
+        if (response.ok) {
+          const newInterest = await response.json();
+          setAvailableInterests((prev) => [...prev, newInterest]);
+          handleSelect(newInterest.id);
+        } else {
+          // If interest already exists, just try to find it and select
+          const existingInterest = availableInterests.find(interest => 
+            interest.nome.toLowerCase() === value.toLowerCase()
+          );
+          if (existingInterest) {
+            handleSelect(existingInterest.id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to create interest:", error);
+      }
     }
   };
 

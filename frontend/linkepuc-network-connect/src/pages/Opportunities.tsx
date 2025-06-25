@@ -13,6 +13,7 @@ import { CurriculumPrompt } from "@/components/opportunities/CurriculumPrompt";
 import { apiFetch } from "@/apiFetch";
 import { useQuery } from "@tanstack/react-query";
 import { useCurriculumStatus } from "@/hooks/use-curriculum-status";
+import { useComplementaryHours } from "@/hooks/use-curriculum-data";
 import { useGlobalData } from "@/hooks/use-global-data";
 import {
   Tooltip,
@@ -41,6 +42,9 @@ export default function Opportunities() {
 
   // Check curriculum status
   const { data: curriculumStatus } = useCurriculumStatus();
+  
+  // Get complementary hours data
+  const { hasHistory, completed, totalRequired, isLoading: isLoadingHours } = useComplementaryHours();
 
   // Use centralized global data instead of making duplicate API calls
   const { types: rawTypes, departments: rawDepartments, isLoading: isLoadingFilters } = useGlobalData();
@@ -110,11 +114,6 @@ export default function Opportunities() {
   }, [selectedTypes, selectedDepartment, selectedBenefits, searchQuery]);
 
   const isLoading = isLoadingFilters || isLoadingOpportunities;
-
-  // Mock data for complementary hours
-  const hasUploadedHistory = true;
-  const totalRequiredHours = 200;
-  const completedHours = 120;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,9 +195,9 @@ export default function Opportunities() {
             </Card>
 
             <RemainingHoursCredits
-              totalRequired={totalRequiredHours}
-              completed={completedHours}
-              hasUploadedHistory={hasUploadedHistory}
+              totalRequired={totalRequired}
+              completed={completed}
+              hasUploadedHistory={hasHistory}
             />
           </div>
 

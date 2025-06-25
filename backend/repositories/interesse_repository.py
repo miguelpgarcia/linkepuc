@@ -4,6 +4,12 @@ from models.interesse import Interesses
 from models.user import User
 
 def create_interesse(db: Session, nome: str):
+    # Check if interest with this name already exists
+    existing_interesse = db.query(Interesses).filter(Interesses.nome == nome).first()
+    if existing_interesse:
+        return existing_interesse  # Return existing interest instead of creating duplicate
+    
+    # Create new interest if it doesn't exist
     interesse = Interesses(nome=nome)
     db.add(interesse)
     db.commit()

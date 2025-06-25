@@ -38,6 +38,16 @@ def get_db():
 
 @interesse_router.post("/")
 async def create_interesse_endpoint(interesse: InteresseCreate, db: Session = Depends(get_db)):
+    # Check if interest already exists
+    from models.interesse import Interesses
+    existing = db.query(Interesses).filter(Interesses.nome == interesse.nome).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Interesse '{interesse.nome}' já existe"
+        )
+    
     return create_interesse(db, interesse.nome)
 
 @interesse_router.get("/")

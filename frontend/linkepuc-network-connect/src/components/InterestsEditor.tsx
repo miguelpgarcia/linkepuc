@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Plus, Save, Loader2 } from "lucide-react";
+import { X, Save, Loader2 } from "lucide-react";
 import { apiFetch } from "@/apiFetch";
 import { API_ENDPOINTS } from "@/config/api";
 import { useToast } from "@/hooks/use-toast";
@@ -31,8 +30,6 @@ export function InterestsEditor({
 }: InterestsEditorProps) {
   const [availableInterests, setAvailableInterests] = useState<Interest[]>([]);
   const [selectedInterestIds, setSelectedInterestIds] = useState<number[]>([]);
-  const [newInterestName, setNewInterestName] = useState("");
-  const [isAddingNew, setIsAddingNew] = useState(false);
   const { toast } = useToast();
 
   // Initialize selected interests
@@ -66,40 +63,6 @@ export function InterestsEditor({
         ? prev.filter(id => id !== interestId)
         : [...prev, interestId]
     );
-  };
-
-  const handleAddNewInterest = async () => {
-    if (!newInterestName.trim()) return;
-
-    try {
-      // Create new interest
-      const response = await apiFetch(API_ENDPOINTS.INTERESSES.BASE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: newInterestName.trim() }),
-      });
-
-      if (!response.ok) throw new Error("Failed to create interest");
-      
-      const newInterest = await response.json();
-      
-      // Add to available interests and select it
-      setAvailableInterests(prev => [...prev, newInterest]);
-      setSelectedInterestIds(prev => [...prev, newInterest.id]);
-      setNewInterestName("");
-      setIsAddingNew(false);
-
-      toast({
-        title: "Interesse adicionado",
-        description: `"${newInterest.nome}" foi adicionado à lista.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao adicionar interesse",
-        description: "Não foi possível adicionar o novo interesse.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleSave = async () => {
@@ -186,38 +149,6 @@ export function InterestsEditor({
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Add New Interest */}
-      <div>
-        {isAddingNew ? (
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nome do novo interesse"
-              value={newInterestName}
-              onChange={(e) => setNewInterestName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddNewInterest()}
-            />
-            <Button size="sm" onClick={handleAddNewInterest}>
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => {
-              setIsAddingNew(false);
-              setNewInterestName("");
-            }}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setIsAddingNew(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar novo interesse
-          </Button>
-        )}
       </div>
 
       {/* Action Buttons */}
