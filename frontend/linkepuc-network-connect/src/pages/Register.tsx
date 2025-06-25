@@ -263,6 +263,17 @@ export default function Register() {
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Não conhece seu Email Institucional?{" "}
+                    <a 
+                      href="https://www.rdc.puc-rio.br/email/criar/aluno/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Clique aqui para criar
+                    </a>
+                  </p>
                 </div>
 
                 <div className="space-y-2">

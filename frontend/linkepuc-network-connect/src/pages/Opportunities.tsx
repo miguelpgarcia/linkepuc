@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Filter, Search, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { RemainingHoursCredits } from "@/components/opportunity/RemainingHoursCredits";
@@ -31,10 +31,15 @@ interface Opportunity {
 }
 
 export default function Opportunities() {
+  // Separate states for pending filters (UI) and applied filters (sent to backend)
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingSearchQuery, setPendingSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
+  const [pendingSelectedTypes, setPendingSelectedTypes] = useState<number[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState("Todos os Departamentos");
+  const [pendingSelectedDepartment, setPendingSelectedDepartment] = useState("Todos os Departamentos");
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
+  const [pendingSelectedBenefits, setPendingSelectedBenefits] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,11 +69,58 @@ export default function Opportunities() {
     };
   }, [rawTypes, rawDepartments]);
 
+  // Check if there are pending filter changes
+  const hasPendingChanges = useMemo(() => {
+    const pendingTypesSorted = [...pendingSelectedTypes].sort();
+    const selectedTypesSorted = [...selectedTypes].sort();
+    const pendingBenefitsSorted = [...pendingSelectedBenefits].sort();
+    const selectedBenefitsSorted = [...selectedBenefits].sort();
+    
+    return (
+      JSON.stringify(pendingTypesSorted) !== JSON.stringify(selectedTypesSorted) ||
+      pendingSelectedDepartment !== selectedDepartment ||
+      JSON.stringify(pendingBenefitsSorted) !== JSON.stringify(selectedBenefitsSorted) ||
+      pendingSearchQuery.trim() !== searchQuery.trim()
+    );
+  }, [pendingSelectedTypes, selectedTypes, pendingSelectedDepartment, selectedDepartment, pendingSelectedBenefits, selectedBenefits, pendingSearchQuery, searchQuery]);
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return selectedTypes.length > 0 || 
+           selectedDepartment !== "Todos os Departamentos" || 
+           selectedBenefits.length > 0 || 
+           searchQuery.trim() !== "";
+  }, [selectedTypes, selectedDepartment, selectedBenefits, searchQuery]);
+
+  // Build query parameters for backend filtering
+  const buildQueryParams = useCallback(() => {
+    const params = new URLSearchParams();
+    params.append('skip', (page * PAGE_SIZE).toString());
+    params.append('limit', PAGE_SIZE.toString());
+    
+    // Add filters
+    if (selectedTypes.length > 0) {
+      params.append('tipos', selectedTypes.join(','));
+    }
+    if (selectedDepartment !== "Todos os Departamentos") {
+      params.append('departamento', selectedDepartment);
+    }
+    if (selectedBenefits.length > 0) {
+      params.append('beneficios', selectedBenefits.join(','));
+    }
+    if (searchQuery.trim()) {
+      params.append('busca', searchQuery.trim());
+    }
+    
+    return params.toString();
+  }, [page, selectedTypes, selectedDepartment, selectedBenefits, searchQuery]);
+
   // Fetch opportunities with React Query
   const { data: opportunitiesData, isLoading: isLoadingOpportunities } = useQuery({
-    queryKey: ['opportunities', page], // Only depend on page number
+    queryKey: ['opportunities', page, selectedTypes, selectedDepartment, selectedBenefits, searchQuery], 
     queryFn: async () => {
-      const response = await apiFetch(API_ENDPOINTS.VAGAS.PAGINATED(page * PAGE_SIZE, PAGE_SIZE));
+      const queryParams = buildQueryParams();
+      const response = await apiFetch(`${API_ENDPOINTS.VAGAS.BASE}?${queryParams}`);
       const data = await response.json();
       return data;
     },
@@ -86,29 +138,10 @@ export default function Opportunities() {
     return mapBackendToFrontendOpportunities(opportunitiesData.vagas, opportunityTypes);
   }, [opportunitiesData, opportunityTypes]);
 
-  // Apply filters to all opportunities
-  const filteredOpportunities = useMemo(() => {
-    return allOpportunities.filter((opp) => {
-      const matchesType = selectedTypes.length === 0 || (opp.originalTipo && selectedTypes.includes(opp.originalTipo.id));
-      const matchesSearch =
-        searchQuery === "" ||
-        (opp.title && opp.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (opp.description && opp.description.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesDepartment =
-        selectedDepartment === "Todos os Departamentos" ||
-        (opp.department && opp.department.name === selectedDepartment);
-      const matchesBenefits =
-        selectedBenefits.length === 0 ||
-        (opp.benefits &&
-          selectedBenefits.every(
-            (benefit) => opp.benefits && benefit in opp.benefits && opp.benefits[benefit] !== undefined
-          ));
+  // No need for frontend filtering since backend handles it
+  const filteredOpportunities = allOpportunities;
 
-      return matchesType && matchesSearch && matchesDepartment && matchesBenefits;
-    });
-  }, [allOpportunities, selectedTypes, searchQuery, selectedDepartment, selectedBenefits]);
-
-  // Reset page when filters change
+  // Reset page when filters are applied
   useEffect(() => {
     setPage(0);
   }, [selectedTypes, selectedDepartment, selectedBenefits, searchQuery]);
@@ -118,27 +151,59 @@ export default function Opportunities() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInputRef.current) {
-      setSearchQuery(searchInputRef.current.value);
+      setPendingSearchQuery(searchInputRef.current.value);
     }
   };
 
-  const toggleType = (typeId: number) => {
-    if (selectedTypes.includes(typeId)) {
-      setSelectedTypes(selectedTypes.filter((id) => id !== typeId));
+  const togglePendingType = (typeId: number) => {
+    if (pendingSelectedTypes.includes(typeId)) {
+      setPendingSelectedTypes(pendingSelectedTypes.filter((id) => id !== typeId));
     } else {
-      setSelectedTypes([...selectedTypes, typeId]);
+      setPendingSelectedTypes([...pendingSelectedTypes, typeId]);
     }
   };
 
-  const toggleBenefit = (benefit: string) => {
-    if (selectedBenefits.includes(benefit)) {
-      setSelectedBenefits(selectedBenefits.filter((b) => b !== benefit));
+  const togglePendingBenefit = (benefit: string) => {
+    if (pendingSelectedBenefits.includes(benefit)) {
+      setPendingSelectedBenefits(pendingSelectedBenefits.filter((b) => b !== benefit));
     } else {
-      setSelectedBenefits([...selectedBenefits, benefit]);
+      setPendingSelectedBenefits([...pendingSelectedBenefits, benefit]);
     }
   };
 
-  // Remove the full-page loading state - we'll show it in the opportunities section instead
+  const applyFilters = () => {
+    setSelectedTypes([...pendingSelectedTypes]);
+    setSelectedDepartment(pendingSelectedDepartment);
+    setSelectedBenefits([...pendingSelectedBenefits]);
+    setSearchQuery(pendingSearchQuery);
+  };
+
+  const clearAllFilters = () => {
+    // Clear both pending and applied filters
+    setPendingSelectedTypes([]);
+    setPendingSelectedDepartment("Todos os Departamentos");
+    setPendingSelectedBenefits([]);
+    setPendingSearchQuery("");
+    setSelectedTypes([]);
+    setSelectedDepartment("Todos os Departamentos");
+    setSelectedBenefits([]);
+    setSearchQuery("");
+    if (searchInputRef.current) {
+      searchInputRef.current.value = "";
+    }
+  };
+
+  // Initialize pending filters with current applied filters only once
+  useEffect(() => {
+    if (selectedTypes.length === 0 && selectedDepartment === "Todos os Departamentos" && 
+        selectedBenefits.length === 0 && searchQuery === "") {
+      // Only initialize if we're starting fresh
+      setPendingSelectedTypes([]);
+      setPendingSelectedDepartment("Todos os Departamentos");
+      setPendingSelectedBenefits([]);
+      setPendingSearchQuery("");
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -161,9 +226,13 @@ export default function Opportunities() {
                     {opportunityTypes.map((type) => (
                       <Badge
                         key={type.id}
-                        variant={selectedTypes.includes(type.id) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => toggleType(type.id)}
+                        variant={pendingSelectedTypes.includes(type.id) ? "default" : "outline"}
+                        className={`cursor-pointer ${
+                          pendingSelectedTypes.includes(type.id) && !selectedTypes.includes(type.id) 
+                            ? "ring-2 ring-primary ring-opacity-50" 
+                            : ""
+                        }`}
+                        onClick={() => togglePendingType(type.id)}
                       >
                         {type.label}
                       </Badge>
@@ -177,9 +246,13 @@ export default function Opportunities() {
                     {departments.map((dept) => (
                       <Button
                         key={dept}
-                        variant={selectedDepartment === dept ? "default" : "ghost"}
-                        className="w-full justify-start font-normal text-left"
-                        onClick={() => setSelectedDepartment(dept)}
+                        variant={pendingSelectedDepartment === dept ? "default" : "ghost"}
+                        className={`w-full justify-start font-normal text-left ${
+                          pendingSelectedDepartment === dept && selectedDepartment !== dept
+                            ? "ring-2 ring-primary ring-opacity-50"
+                            : ""
+                        }`}
+                        onClick={() => setPendingSelectedDepartment(dept)}
                       >
                         <span className="truncate">{dept}</span>
                       </Button>
@@ -188,9 +261,22 @@ export default function Opportunities() {
                 </div>
 
                 <BenefitsFilter
-                  selectedBenefits={selectedBenefits}
-                  onToggleBenefit={toggleBenefit}
+                  selectedBenefits={pendingSelectedBenefits}
+                  onToggleBenefit={togglePendingBenefit}
                 />
+
+                {(hasActiveFilters || hasPendingChanges) && (
+                  <div className="pt-4 border-t">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={clearAllFilters}
+                      className="w-full"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -212,7 +298,7 @@ export default function Opportunities() {
               <CurriculumPrompt />
             )}
 
-            <form onSubmit={handleSearch} className="relative mb-6">
+            <form onSubmit={handleSearch} className="relative mb-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
@@ -222,13 +308,100 @@ export default function Opportunities() {
               />
             </form>
 
+            {/* Apply Filters Section */}
+            {hasPendingChanges && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-blue-900 mb-2">Filtros Selecionados:</h3>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      {pendingSelectedTypes.length > 0 && (
+                        <div>
+                          <strong>Tipos:</strong> {pendingSelectedTypes.map(id => 
+                            opportunityTypes.find(t => t.id === id)?.label
+                          ).filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                      {pendingSelectedDepartment !== "Todos os Departamentos" && (
+                        <div><strong>Departamento:</strong> {pendingSelectedDepartment}</div>
+                      )}
+                      {pendingSelectedBenefits.length > 0 && (
+                        <div><strong>Benefícios:</strong> {pendingSelectedBenefits.join(', ')}</div>
+                      )}
+                      {pendingSearchQuery.trim() && (
+                        <div><strong>Busca:</strong> "{pendingSearchQuery.trim()}"</div>
+                      )}
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={applyFilters}
+                    className="ml-4"
+                    size="sm"
+                  >
+                    Aplicar Filtros
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Active Filters Display */}
+            {hasActiveFilters && (
+              <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-green-900 mb-1">Filtros Aplicados:</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTypes.length > 0 && selectedTypes.map(id => {
+                        const type = opportunityTypes.find(t => t.id === id);
+                        return type ? (
+                          <Badge key={id} className="bg-green-100 text-green-800 border-green-300">
+                            {type.label}
+                          </Badge>
+                        ) : null;
+                      })}
+                      {selectedDepartment !== "Todos os Departamentos" && (
+                        <Badge className="bg-green-100 text-green-800 border-green-300">
+                          {selectedDepartment}
+                        </Badge>
+                      )}
+                      {selectedBenefits.map(benefit => (
+                        <Badge key={benefit} className="bg-green-100 text-green-800 border-green-300">
+                          {benefit}
+                        </Badge>
+                      ))}
+                      {searchQuery.trim() && (
+                        <Badge className="bg-green-100 text-green-800 border-green-300">
+                          "{searchQuery.trim()}"
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={clearAllFilters}
+                    variant="outline"
+                    size="sm"
+                    className="ml-4 text-green-700 border-green-300 hover:bg-green-100"
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Single list of opportunities */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">
-                  Oportunidades para Você
-                </h2>
-                {opportunitiesData?.recommended_count > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    Oportunidades para Você
+                  </h2>
+                  {hasActiveFilters && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {opportunitiesData?.total || 0} oportunidade{(opportunitiesData?.total || 0) !== 1 ? 's' : ''} encontrada{(opportunitiesData?.total || 0) !== 1 ? 's' : ''} com os filtros aplicados
+                    </p>
+                  )}
+                </div>
+                {opportunitiesData?.recommended_count > 0 && !hasActiveFilters && (
                   <span className="text-sm text-muted-foreground">
                     {opportunitiesData.recommended_count} recomendadas baseadas nos seus interesses
                   </span>
@@ -294,11 +467,11 @@ export default function Opportunities() {
                       Anterior
                     </Button>
                     <span className="py-2">
-                      Página {page + 1}
+                      Página {page + 1} de {Math.ceil((opportunitiesData?.total || 0) / PAGE_SIZE)}
                     </span>
                     <Button
                       onClick={() => setPage((p) => p + 1)}
-                      disabled={allOpportunities.length < PAGE_SIZE || isLoading}
+                      disabled={(page + 1) * PAGE_SIZE >= (opportunitiesData?.total || 0) || isLoading}
                       variant="outline"
                     >
                       Próxima
@@ -325,13 +498,19 @@ export function mapBackendToFrontendOpportunities(data: any[], opportunityTypes:
   const mapTypeToFrontend = (backendType: any): "monitoria" | "iniciacao_cientifica" | "estagio" | "bolsa" | "empresa_jr" | "laboratorio" => {
     if (!backendType?.nome) return "monitoria";
     
-    const typeName = backendType.nome.toLowerCase();
+    const typeName = backendType.nome.toLowerCase()
+      .normalize("NFD") // Normalize to decomposed form
+      .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+      .replace(/[^a-z\s]/g, ""); // Remove non-alphabetic characters except spaces
+    
+    // More comprehensive matching
     if (typeName.includes("monitoria")) return "monitoria";
-    if (typeName.includes("iniciação") || typeName.includes("iniciacao") || typeName.includes("científica") || typeName.includes("cientifica")) return "iniciacao_cientifica";
-    if (typeName.includes("estágio") || typeName.includes("estagio")) return "estagio";
-    if (typeName.includes("bolsa")) return "bolsa";
-    if (typeName.includes("empresa") && typeName.includes("júnior")) return "empresa_jr";
-    if (typeName.includes("laboratório") || typeName.includes("laboratorio")) return "laboratorio";
+    if (typeName.includes("iniciacao") || typeName.includes("cientifica") || 
+        typeName.includes("pesquisa") || typeName.includes("ic")) return "iniciacao_cientifica";
+    if (typeName.includes("estagio") || typeName.includes("trainee")) return "estagio";
+    if (typeName.includes("bolsa") || typeName.includes("auxilio")) return "bolsa";
+    if (typeName.includes("empresa") || typeName.includes("junior") || typeName.includes("jr")) return "empresa_jr";
+    if (typeName.includes("laboratorio") || typeName.includes("lab")) return "laboratorio";
     
     return "monitoria"; // default
   };

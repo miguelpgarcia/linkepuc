@@ -101,12 +101,12 @@ export default function ProfessorLogin() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
-                  <a 
-                    href="#" 
+                  <Link 
+                    to="/forgot-password" 
                     className="text-sm text-primary hover:underline"
                   >
                     Esqueceu a senha?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative">
                   <Input
@@ -143,7 +143,7 @@ export default function ProfessorLogin() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm">
-              Primeiro acesso?{" "}
+              Primeiro acesso no LinkePuc?{" "}
               <Link
                 to="/professor/register"
                 className="font-medium text-primary hover:underline"

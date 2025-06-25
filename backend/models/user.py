@@ -17,6 +17,8 @@ class User(Base):
     email_verified = Column(Boolean, default=False)
     verification_token = Column(String(500), nullable=True)
     verification_token_expires = Column(TIMESTAMP, nullable=True)
+    reset_token = Column(String(500), nullable=True)
+    reset_token_expires = Column(TIMESTAMP, nullable=True)
     interesses = relationship("InteresseUsuario", back_populates="usuario")
 
     vagas = relationship("Vagas", back_populates="autor")  # Add back-reference to Vagas

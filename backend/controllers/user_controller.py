@@ -59,6 +59,13 @@ class UserUpdate(BaseModel):
 class VerifyEmailRequest(BaseModel):
     token: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 def get_db():
     db = SessionLocal()
     try:
@@ -177,6 +184,92 @@ async def verify_email_endpoint(request: VerifyEmailRequest, db: Session = Depen
         )
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@user_router.post("/forgot-password")
+async def forgot_password_endpoint(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        # Check if user exists
+        user = get_user_by_email(db, request.email)
+        if not user:
+            # Don't reveal if email exists or not for security
+            return {"message": "If this email is registered, you will receive a password reset link."}
+        
+        # Generate reset token (24 hour expiry)
+        token_expiry = datetime.utcnow() + timedelta(hours=24)
+        token_data = {
+            "sub": str(user.id),
+            "type": "password_reset",
+            "exp": token_expiry
+        }
+        reset_token = jwt.encode(token_data, os.getenv("SECRET_KEY"), algorithm="HS256")
+        
+        # Save reset token to database
+        user.reset_token = reset_token
+        user.reset_token_expires = token_expiry
+        db.commit()
+        
+        # Send reset email
+        from services.email_service import send_password_reset_email
+        await send_password_reset_email(user.email, reset_token, user.ehaluno)
+        
+        return {"message": "If this email is registered, you will receive a password reset link."}
+    except Exception as e:
+        print(f"Error in forgot password: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process password reset request"
+        )
+
+@user_router.post("/reset-password")
+async def reset_password_endpoint(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        # Decode and validate token
+        payload = jwt.decode(request.token, os.getenv("SECRET_KEY"), algorithms=["HS256"])
+        user_id = int(payload["sub"])
+        token_type = payload.get("type")
+        
+        if token_type != "password_reset":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid token type"
+            )
+        
+        # Get user and verify token
+        user = get_user(db, user_id)
+        if not user or user.reset_token != request.token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+        
+        # Check if token is expired
+        if user.reset_token_expires and datetime.utcnow() > user.reset_token_expires:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reset token has expired"
+            )
+        
+        # Update password and clear reset token
+        from repositories.user_repository import update_user_password
+        update_user_password(db, user.id, request.new_password)
+        
+        # Clear reset token
+        user.reset_token = None
+        user.reset_token_expires = None
+        db.commit()
+        
+        return {"message": "Password reset successfully"}
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    except Exception as e:
+        print(f"Error in reset password: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)

@@ -25,6 +25,8 @@ import ProfessorNotifications from "./pages/ProfessorNotifications";
 import ProfessorProfile from "./pages/ProfessorProfile";
 import ImportCurriculum from "./pages/ImportCurriculum";
 import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { apiFetch } from "@/apiFetch";
 import { mapBackendToFrontendOpportunities } from "./pages/Opportunities";
 import { useQueryClient } from "@tanstack/react-query";
@@ -217,6 +219,8 @@ const App = () => (
             }
           />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

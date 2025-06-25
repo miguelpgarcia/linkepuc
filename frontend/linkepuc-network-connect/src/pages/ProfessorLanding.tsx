@@ -115,19 +115,22 @@ function LoggedOutProfessorLanding() {
             <p className="text-lg text-muted-foreground mb-8">
               Suas iniciativas já fazem a diferença. Com o LinkePUC, você pode alcançar alunos engajados de diferentes cursos, contribuir para seu desenvolvimento e ampliar o impacto do seu trabalho na universidade e na sociedade.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center sm:items-start">
               <Button asChild size="lg" className="gap-2">
                 <Link to="/professor/login">
                   Entrar como professor
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="gap-2">
-                <Link to="/professor/register">
-                  Cadastrar-se
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-              </Button>
+              <div className="flex flex-col items-center gap-1">
+                <Button asChild variant="outline" size="lg" className="gap-2 border-green-500 text-green-600 hover:bg-green-50">
+                  <Link to="/">
+                    <FileUp className="h-5 w-5" />
+                    Aluno da PUC?
+                  </Link>
+                </Button>
+                <span className="text-xs text-green-600/70">Acesse espaço do aluno</span>
+              </div>
             </div>
           </div>
           

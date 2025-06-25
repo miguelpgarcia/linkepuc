@@ -29,6 +29,19 @@ async def send_verification_email(email: str, token: str, is_student: bool) -> N
         print(f"❌ Gmail API failed: {str(e)}")
         raise Exception(f"Failed to send verification email: {str(e)}")
 
+async def send_password_reset_email(email: str, token: str, is_student: bool) -> None:
+    """Send a password reset email to the user using Gmail API."""
+    print(f"📧 Sending password reset email to {email} using Gmail API...")
+    
+    try:
+        from .gmail_api_service import send_password_reset_email_gmail
+        await send_password_reset_email_gmail(email, token, is_student)
+        print(f"✅ Password reset email sent successfully to {email}")
+        return
+    except Exception as e:
+        print(f"❌ Gmail API failed: {str(e)}")
+        raise Exception(f"Failed to send password reset email: {str(e)}")
+
 if __name__ == "__main__":
     # Test email configuration
     print("🧪 Testing Gmail API email service...")

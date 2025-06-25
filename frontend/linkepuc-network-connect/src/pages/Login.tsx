@@ -80,7 +80,7 @@ export default function Login() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">Entrar na sua conta</CardTitle>
+            <CardTitle className="text-center">Entrar na sua conta LinkePuc</CardTitle>
             <CardDescription className="text-center">
               Conecte-se com a comunidade PUC-Rio
             </CardDescription>
@@ -97,16 +97,27 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Não conhece seu Email Institucional?{" "}
+                  <a 
+                    href="https://www.rdc.puc-rio.br/email/criar/aluno/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Clique aqui para criar
+                  </a>
+                </p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
-                  <a 
-                    href="#" 
+                  <Link 
+                    to="/forgot-password" 
                     className="text-sm text-primary hover:underline"
                   >
                     Esqueceu a senha?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative">
                   <Input
@@ -148,7 +159,7 @@ export default function Login() {
               </div>
             </div>
             <div className="text-center text-sm">
-              Não tem uma conta?{" "}
+              Não tem uma conta LinkePuc?{" "}
               <Link
                 to="/register"
                 className="font-medium text-primary hover:underline"

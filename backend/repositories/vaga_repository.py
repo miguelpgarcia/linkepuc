@@ -4,6 +4,7 @@ from sqlalchemy.orm import joinedload
 from models.interesse_vaga import InteresseVaga
 from sqlalchemy import func
 from models.candidato_vaga import CandidatoVaga
+from models.recomendacao import Recomendacao
 from functools import lru_cache
 from models.base import SessionLocal
 
@@ -58,78 +59,121 @@ def get_vagas_cached(skip: int = 0, limit: int = 20):
     finally:
         db.close()
 
-def get_vagas(db: Session, skip: int = 0, limit: int = 20, user_id: int = None):
-    # Get total count for pagination info
-    total = db.query(Vagas).filter(Vagas.status == "em_andamento").count()
+def get_vagas(db: Session, skip: int = 0, limit: int = 20, user_id: int = None, 
+              tipo_ids: list = None, departamento: str = None, beneficios: list = None, busca: str = None):
+    
+    # Build base query with filters
+    base_query = db.query(Vagas).filter(Vagas.status == "em_andamento")
+    
+    # Apply filters
+    if tipo_ids:
+        base_query = base_query.filter(Vagas.tipo_id.in_(tipo_ids))
+    
+    if departamento and departamento != "Todos os Departamentos":
+        from models.departamento import Departamento
+        base_query = base_query.join(Departamento).filter(Departamento.name == departamento)
+    
+    if busca:
+        search_term = f"%{busca.lower()}%"
+        base_query = base_query.filter(
+            (Vagas.titulo.ilike(search_term)) | 
+            (Vagas.descricao.ilike(search_term))
+        )
+    
+    if beneficios:
+        # Filter by benefits - this is more complex as benefits are stored as separate columns
+        for beneficio in beneficios:
+            if beneficio == "remuneracao":
+                base_query = base_query.filter(Vagas.remuneracao > 0)
+            elif beneficio == "desconto_mensalidade":
+                base_query = base_query.filter(Vagas.desconto > 0)
+            elif beneficio == "horas_complementares":
+                base_query = base_query.filter(Vagas.horas_complementares > 0)
+    
+    # Get total count with filters applied
+    total = base_query.count()
     
     recommended_vagas = []
     regular_vagas = []
     recommendations_data = {}
     
-    # MARKET-STANDARD APPROACH: Use pre-computed cached recommendations (like Netflix/Amazon)
-    # instead of calculating them on-the-fly
-    if user_id:
-        from models.recomendacao import Recomendacao
+    # When filters are applied, skip recommendations and get filtered results directly
+    if tipo_ids or departamento or beneficios or busca:
+        # Apply filters directly - no recommendations when filtering
+        filtered_query = base_query.options(
+            joinedload(Vagas.autor),
+            joinedload(Vagas.tipo),
+            joinedload(Vagas.department),
+            joinedload(Vagas.location),
+            joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
+        )
         
-        # Get PRE-COMPUTED recommendations from database (FAST!)
-        cached_recommendations = db.query(Recomendacao).filter(
-            Recomendacao.usuario_id == user_id,
-            Recomendacao.estrategia == "combined",  # Get combined recommendations
-            Recomendacao.ativa == True
-        ).order_by(Recomendacao.score.desc()).limit(5).all()
+        regular_vagas = filtered_query.order_by(Vagas.criado_em.desc()).offset(skip).limit(limit).all()
         
-        if cached_recommendations:
-            # Get vaga IDs from cached recommendations
-            recommended_vaga_ids = [rec.vaga_id for rec in cached_recommendations]
+    else:
+        # No filters applied - use recommendations
+        if user_id:
+            from models.recomendacao import Recomendacao
             
-            # Store cached recommendation data
-            for rec in cached_recommendations:
-                recommendations_data[rec.vaga_id] = {
-                    'score': rec.score,
-                    'explanation': rec.explicacao
-                }
+            # Get PRE-COMPUTED recommendations from database (FAST!)
+            cached_recommendations = db.query(Recomendacao).filter(
+                Recomendacao.usuario_id == user_id,
+                Recomendacao.estrategia == "combined",  # Get combined recommendations
+                Recomendacao.ativa == True
+            ).order_by(Recomendacao.score.desc()).limit(5).all()
             
-            # Fetch the actual recommended vagas
-            recommended_vagas = db.query(Vagas).options(
-                joinedload(Vagas.autor),
-                joinedload(Vagas.tipo),
-                joinedload(Vagas.department),
-                joinedload(Vagas.location),
-                joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
-            ).filter(
-                Vagas.id.in_(recommended_vaga_ids),
-                Vagas.status == "em_andamento"
-            ).all()
-            
-            # Sort by recommendation score (from cache)
-            recommended_vagas.sort(
-                key=lambda v: recommendations_data.get(v.id, {}).get('score', 0),
-                reverse=True
-            )
-            
-            # Get remaining regular vagas
-            remaining_limit = limit - len(recommended_vagas)
-            if remaining_limit > 0:
-                regular_vagas = db.query(Vagas).options(
+            if cached_recommendations:
+                # Get vaga IDs from cached recommendations
+                recommended_vaga_ids = [rec.vaga_id for rec in cached_recommendations]
+                
+                # Store cached recommendation data
+                for rec in cached_recommendations:
+                    recommendations_data[rec.vaga_id] = {
+                        'score': rec.score,
+                        'explanation': rec.explicacao
+                    }
+                
+                # Fetch the actual recommended vagas
+                recommended_vagas = db.query(Vagas).options(
                     joinedload(Vagas.autor),
                     joinedload(Vagas.tipo),
                     joinedload(Vagas.department),
                     joinedload(Vagas.location),
                     joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
                 ).filter(
-                    Vagas.status == "em_andamento",
-                    ~Vagas.id.in_(recommended_vaga_ids)
-                ).order_by(Vagas.criado_em.desc()).offset(skip).limit(remaining_limit).all()
-    
-    # If no user or no cached recommendations, get regular vagas
-    if not recommended_vagas and not regular_vagas:
-        regular_vagas = db.query(Vagas).options(
-            joinedload(Vagas.autor),
-            joinedload(Vagas.tipo),
-            joinedload(Vagas.department),
-            joinedload(Vagas.location),
-            joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
-        ).filter(Vagas.status == "em_andamento").order_by(Vagas.criado_em.desc()).offset(skip).limit(limit).all()
+                    Vagas.id.in_(recommended_vaga_ids),
+                    Vagas.status == "em_andamento"
+                ).all()
+                
+                # Sort by recommendation score (from cache)
+                recommended_vagas.sort(
+                    key=lambda v: recommendations_data.get(v.id, {}).get('score', 0),
+                    reverse=True
+                )
+                
+                # Get remaining regular vagas
+                remaining_limit = limit - len(recommended_vagas)
+                if remaining_limit > 0:
+                    regular_vagas = db.query(Vagas).options(
+                        joinedload(Vagas.autor),
+                        joinedload(Vagas.tipo),
+                        joinedload(Vagas.department),
+                        joinedload(Vagas.location),
+                        joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
+                    ).filter(
+                        Vagas.status == "em_andamento",
+                        ~Vagas.id.in_(recommended_vaga_ids)
+                    ).order_by(Vagas.criado_em.desc()).offset(skip).limit(remaining_limit).all()
+        
+                # If no user or no cached recommendations, get regular vagas
+        if not recommended_vagas and not regular_vagas:
+            regular_vagas = base_query.options(
+                joinedload(Vagas.autor),
+                joinedload(Vagas.tipo),
+                joinedload(Vagas.department),
+                joinedload(Vagas.location),
+                joinedload(Vagas.interesses).joinedload(InteresseVaga.interesse)
+            ).order_by(Vagas.criado_em.desc()).offset(skip).limit(limit).all()
     
     # Combine recommended + regular vagas
     all_vagas = recommended_vagas + regular_vagas

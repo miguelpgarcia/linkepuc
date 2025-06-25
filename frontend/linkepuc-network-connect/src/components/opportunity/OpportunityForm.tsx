@@ -27,6 +27,7 @@ import { formSchema, OpportunityFormValues } from "./opportunityFormSchema";
 import { BenefitSelector } from "./BenefitSelector";
 import { InterestsSelector } from "./InterestsSelector";
 import { apiFetch } from "@/apiFetch";
+import { API_ENDPOINTS } from "@/config/api";
 import { useOpportunityFormData } from "@/hooks/use-opportunity-form-data";
 import { Loader2 } from "lucide-react";
 
@@ -103,6 +104,9 @@ export function OpportunityForm() {
         throw new Error("Failed to create vaga");
       }
 
+      const responseData = await response.json();
+      console.log("Success response:", responseData);
+
       toast({
         title: "Oportunidade criada com sucesso!",
         description: "Sua oportunidade foi publicada e já está disponível.",
@@ -113,7 +117,7 @@ export function OpportunityForm() {
       console.error("Error creating vaga:", error);
       toast({
         title: "Erro ao criar oportunidade",
-        description: "Não foi possível criar a oportunidade. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível criar a oportunidade. Tente novamente.",
         variant: "destructive",
       });
     }

@@ -15,7 +15,7 @@ from services.cache_service import static_cache
 from models.base import SessionLocal
 from pydantic import BaseModel
 from schemas.vaga_schema import VagaResponse
-from typing import List
+from typing import List, Optional
 from dependecies import get_current_user
 from models.user import User
 
@@ -60,10 +60,46 @@ async def read_vagas_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100)
+    limit: int = Query(20, ge=1, le=100),
+    tipos: Optional[str] = Query(None, description="Comma-separated list of tipo IDs"),
+    departamento: Optional[str] = Query(None, description="Department name"),
+    beneficios: Optional[str] = Query(None, description="Comma-separated list of benefits"),
+    busca: Optional[str] = Query(None, description="Search query for title/description")
 ):
-    # Pass user_id to get personalized recommendations
-    result = get_vagas(db, skip=skip, limit=limit, user_id=current_user.id)
+    # Parse filter parameters
+    tipo_ids = []
+    if tipos:
+        try:
+            tipo_ids = [int(t.strip()) for t in tipos.split(',') if t.strip()]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid tipo IDs format")
+    
+    benefit_list = []
+    if beneficios:
+        benefit_list = [b.strip() for b in beneficios.split(',') if b.strip()]
+    
+    # Debug logs
+    print(f"=== CONTROLLER DEBUG ===")
+    print(f"Raw tipos param: {tipos}")
+    print(f"Parsed tipo_ids: {tipo_ids}")
+    print(f"Raw beneficios param: {beneficios}")
+    print(f"Parsed benefit_list: {benefit_list}")
+    print(f"departamento: {departamento}")
+    print(f"busca: {busca}")
+    print(f"=== END CONTROLLER DEBUG ===")
+    
+    
+    # Pass filters to repository
+    result = get_vagas(
+        db, 
+        skip=skip, 
+        limit=limit, 
+        user_id=current_user.id,
+        tipo_ids=tipo_ids,
+        departamento=departamento,
+        beneficios=benefit_list,
+        busca=busca
+    )
     return {
         "vagas": result["vagas"],
         "total": result["total"],

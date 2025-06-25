@@ -19,6 +19,8 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: `${API_BASE_URL}/users/login`,
     VERIFY_EMAIL: `${API_BASE_URL}/users/verify-email`,
+    FORGOT_PASSWORD: `${API_BASE_URL}/users/forgot-password`,
+    RESET_PASSWORD: `${API_BASE_URL}/users/reset-password`,
   },
 
   // User endpoints

@@ -143,6 +143,51 @@ async def send_verification_email_gmail(email: str, token: str, is_student: bool
     # Run in thread pool to keep it async
     await asyncio.get_event_loop().run_in_executor(None, send_gmail)
 
+async def send_password_reset_email_gmail(email: str, token: str, is_student: bool) -> None:
+    """Send password reset email using Gmail API"""
+    import asyncio
+    
+    def send_gmail():
+        reset_url = f"https://linkepuc.com/reset-password?token={token}"
+        user_type = "aluno" if is_student else "professor"
+        
+        html_content = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <img src="https://linkepuc.com/lovable-uploads/600b30a3-851a-493b-98ca-81653ff0f5bc.png"
+                         alt="LinkePuc Logo" 
+                         style="max-width: 200px; height: auto;">
+                </div>
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+                    <h2 style="color: #333; margin-bottom: 20px;">Redefinir sua senha - LinkePuc</h2>
+                    <p style="color: #666; line-height: 1.6;">Olá! Recebemos uma solicitação para redefinir a senha da sua conta {user_type} no LinkePuc.</p>
+                    <p style="color: #666; line-height: 1.6;">Para criar uma nova senha, clique no botão abaixo:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_url}" 
+                           style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Redefinir minha senha
+                        </a>
+                    </div>
+                    <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Este link expirará em 24 horas.</p>
+                    <p style="color: #666; line-height: 1.6; font-size: 0.9em;">Se você não solicitou a redefinição de senha, por favor ignore este email. Sua conta permanecerá segura.</p>
+                </div>
+                <div style="text-align: center; margin-top: 30px; color: #666; font-size: 0.9em;">
+                    <p>Atenciosamente,<br>Equipe LinkePuc</p>
+                </div>
+            </body>
+        </html>
+        """
+        
+        gmail_service.send_email(
+            to_email=email,
+            subject="Redefinir senha - LinkePuc",
+            html_content=html_content
+        )
+    
+    # Run in thread pool to keep it async
+    await asyncio.get_event_loop().run_in_executor(None, send_gmail)
+
 if __name__ == "__main__":
     # Test the Gmail API
     import asyncio

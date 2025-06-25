@@ -106,12 +106,23 @@ function LoggedOutHome() {
             <p className="text-lg text-muted-foreground mb-8">
               Conectamos alunos a oportunidades acadêmicas únicas para impulsionar sua carreira universitária
             </p>
-            <Button asChild size="lg" className="gap-2">
-              <Link to="/login">
-                Comece Agora
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center sm:items-start">
+              <Button asChild size="lg" className="gap-2">
+                <Link to="/login">
+                  Comece Agora
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </Button>
+              <div className="flex flex-col items-center gap-1">
+                <Button asChild variant="outline" size="lg" className="gap-2 border-green-500 text-green-600 hover:bg-green-50">
+                  <Link to="/professor">
+                    <GraduationCap className="h-5 w-5" />
+                    Docente da PUC?
+                  </Link>
+                </Button>
+                <span className="text-xs text-green-600/70">Acesse espaço do professor</span>
+              </div>
+            </div>
           </div>
           
           <OpportunityCarousel />
@@ -152,31 +163,19 @@ function LoggedOutHome() {
             </div>
           </div>
           
-          {/* Professor CTA Section */}
-          <div className="py-12 border-t">
-            <Card className="border border-primary/20 bg-gradient-to-r from-secondary/80 to-secondary/30">
-              <CardContent className="p-8">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div>
-                    <div className="mb-2 p-3 bg-primary/10 inline-block rounded-full">
-                      <GraduationCap className="h-10 w-10 text-primary" />
-                    </div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-primary mb-2">
-                      Docente da PUC? Ajude a formar trajetórias.
-                    </h2>
-                    <p className="text-muted-foreground">
-                      Publique monitorias, projetos ou iniciações.
-                    </p>
-                  </div>
-                  <Button asChild size="lg" className="gap-2 whitespace-nowrap">
-                    <Link to="/professor">
-                      Acesse o espaço do professor
-                      <ArrowRight className="h-5 w-5" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Professor CTA Section - Smaller version */}
+          <div className="py-8 border-t">
+            <div className="text-center">
+              <p className="text-muted-foreground mb-4">
+                Docente da PUC? Publique oportunidades e ajude a formar trajetórias acadêmicas.
+              </p>
+              <Button asChild variant="outline" className="gap-2">
+                <Link to="/professor">
+                  <GraduationCap className="h-4 w-4" />
+                  Acesse o espaço do professor
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
