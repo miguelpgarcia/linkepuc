@@ -7,7 +7,8 @@ import {
   LogOut,
   Menu,
   MessageSquare,
-  X
+  X,
+  GraduationCap
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/AuthContext";
@@ -68,31 +69,35 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
-      <div className="container flex h-16 items-center justify-between">
-        {/* Mobile menu button */}
-        {isMobile && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden" 
-            onClick={toggleMobileMenu}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
-        )}
-
+      <div className="container flex h-16 items-center">
         {/* Left section - hidden on mobile unless menu is open */}
-        {!isMobile && (
-          <div className="flex items-center space-x-8">
-            <Link to="/opportunities" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <Briefcase size={22} />
-              <span className="text-xs">Oportunidades</span>
-            </Link>
-          </div>
-        )}
+        <div className="flex items-center space-x-8 flex-1">
+          {isMobile && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden" 
+              onClick={toggleMobileMenu}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </Button>
+          )}
+          {!isMobile && (
+            <>
+              <Link to="/opportunities" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                <Briefcase size={22} />
+                <span className="text-xs">Oportunidades</span>
+              </Link>
+              <Link to="/import-curriculum" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                <GraduationCap size={22} />
+                <span className="text-xs">Histórico</span>
+              </Link>
+            </>
+          )}
+        </div>
 
-        {/* Center section - Logo always visible */}
-        <div className={`flex items-center justify-center gap-2 ${isMobile ? "ml-4" : ""}`}>
+        {/* Center section - Logo always visible and centered */}
+        <div className="flex items-center justify-center gap-2 absolute left-1/2 transform -translate-x-1/2">
           <Link to="/" className="flex items-center gap-2">
             <div className="relative h-8 w-8">
               <img 
@@ -106,34 +111,35 @@ export function Header() {
         </div>
 
         {/* Right section - conditionally show based on screen size */}
-        {!isMobile && (
-          <div className="flex items-center space-x-8">
-            <Link to="/messages" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <MessageSquare size={22} />
-              <span className="text-xs">Mensagens</span>
-            </Link>
-            <div className="border-l h-8" />
+        <div className="flex items-center space-x-8 flex-1 justify-end">
+          {!isMobile && (
+            <>
+              <Link to="/messages" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                <MessageSquare size={22} />
+                <span className="text-xs">Mensagens</span>
+              </Link>
+              <div className="border-l h-8" />
+              <Link to="/profile">
+                <Avatar>
+                  <AvatarImage src={profileData?.avatar || undefined} />
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                </Avatar>
+              </Link>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={handleLogout}>
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </>
+          )}
+          {isMobile && !mobileMenuOpen && (
             <Link to="/profile">
-              <Avatar>
-                <AvatarImage src={profileData?.avatar || undefined} />
-                <AvatarFallback>{getUserInitials()}</AvatarFallback>
-              </Avatar>
-            </Link>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={handleLogout}>
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
-        {isMobile && !mobileMenuOpen && (
-          <div className="flex items-center">
-            <Link to="/profile" className="mr-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={profileData?.avatar || undefined} />
                 <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
               </Avatar>
             </Link>
-          </div>
-        )}
+          )}
+        </div>
+
       </div>
 
       {/* Mobile menu */}
@@ -147,6 +153,14 @@ export function Header() {
             >
               <Briefcase size={24} />
               <span>Oportunidades</span>
+            </Link>
+            <Link 
+              to="/import-curriculum" 
+              className="flex items-center gap-3 text-lg" 
+              onClick={toggleMobileMenu}
+            >
+              <GraduationCap size={24} />
+              <span>Histórico Acadêmico</span>
             </Link>
             <Link 
               to="/messages" 

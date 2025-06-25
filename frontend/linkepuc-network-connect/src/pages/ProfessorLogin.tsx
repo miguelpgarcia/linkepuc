@@ -50,7 +50,7 @@ export default function ProfessorLogin() {
       });
       
       setTimeout(() => {
-        navigate("/professor/opportunities");
+        navigate("/professor");
       }, 1500);
     } catch (error) {
       toast({

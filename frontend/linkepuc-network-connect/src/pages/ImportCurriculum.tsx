@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileText, Upload, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { FileText, Upload, CheckCircle, AlertCircle, Info, GraduationCap, BookOpen, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/apiFetch";
@@ -36,8 +36,8 @@ export default function ImportCurriculum() {
     },
     onSuccess: () => {
       toast({
-        title: "Currículo importado com sucesso!",
-        description: "Seu histórico acadêmico foi processado e agora você receberá recomendações personalizadas.",
+        title: "Histórico acadêmico importado com sucesso!",
+        description: "Suas disciplinas foram processadas e agora você receberá recomendações personalizadas baseadas no seu perfil acadêmico.",
       });
       queryClient.invalidateQueries({ queryKey: ["curriculumStatus"] });
       queryClient.invalidateQueries({ queryKey: ["curriculumData"] });
@@ -45,7 +45,7 @@ export default function ImportCurriculum() {
     },
     onError: (error) => {
       toast({
-        title: "Erro ao importar currículo",
+        title: "Erro ao importar histórico acadêmico",
         description: error.message,
         variant: "destructive",
       });
@@ -89,10 +89,16 @@ export default function ImportCurriculum() {
       <main className="container py-6">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold">Importar Currículo Acadêmico</h1>
-            <p className="text-muted-foreground">
-              Faça upload do seu histórico escolar para receber recomendações personalizadas
+          <div className="text-center space-y-4">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                <GraduationCap className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold">Histórico Acadêmico</h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Importe seu histórico escolar da PUC-Rio para receber recomendações de oportunidades 
+              personalizadas baseadas nas disciplinas que você já cursou.
             </p>
           </div>
 
@@ -107,10 +113,11 @@ export default function ImportCurriculum() {
                         <CheckCircle className="h-6 w-6 text-green-600" />
                         <div>
                           <p className="font-medium text-green-900">
-                            Currículo já importado
+                            Histórico acadêmico já importado
                           </p>
                           <p className="text-sm text-green-700">
-                            Você pode fazer upload de uma nova versão para atualizar seus dados.
+                            Suas disciplinas estão sendo usadas para gerar recomendações personalizadas. 
+                            Você pode atualizar com uma versão mais recente a qualquer momento.
                           </p>
                         </div>
                       </>
@@ -119,10 +126,11 @@ export default function ImportCurriculum() {
                         <Info className="h-6 w-6 text-blue-600" />
                         <div>
                           <p className="font-medium text-blue-900">
-                            Nenhum currículo importado
+                            Nenhum histórico acadêmico importado
                           </p>
                           <p className="text-sm text-blue-700">
-                            Importe seu histórico acadêmico para receber oportunidades personalizadas.
+                            Importe seu histórico escolar para receber oportunidades de monitoria, 
+                            iniciação científica e projetos baseados no seu perfil acadêmico.
                           </p>
                         </div>
                       </>
@@ -144,12 +152,12 @@ export default function ImportCurriculum() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Upload className="h-5 w-5" />
-                  Upload do Histórico
+                  Upload do Histórico Escolar
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="curriculum-file">Arquivo PDF do Histórico</Label>
+                  <Label htmlFor="curriculum-file">Arquivo PDF do Histórico Escolar</Label>
                   <Input
                     id="curriculum-file"
                     type="file"
@@ -158,7 +166,7 @@ export default function ImportCurriculum() {
                     disabled={uploadMutation.isPending}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Máximo 10MB • Apenas arquivos PDF
+                    Máximo 10MB • Apenas arquivos PDF do histórico oficial da PUC-Rio
                   </p>
                 </div>
 
@@ -182,12 +190,12 @@ export default function ImportCurriculum() {
                   {uploadMutation.isPending ? (
                     <>
                       <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                      Processando...
+                      Processando histórico...
                     </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Importar Currículo
+                      Importar Histórico Acadêmico
                     </>
                   )}
                 </Button>
@@ -199,7 +207,7 @@ export default function ImportCurriculum() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Info className="h-5 w-5" />
-                  Como obter seu histórico
+                  Como obter seu histórico escolar
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -209,9 +217,9 @@ export default function ImportCurriculum() {
                       1
                     </div>
                     <div>
-                      <p className="font-medium">Acesse o Portal do Aluno</p>
+                      <p className="font-medium">Acesse o Portal do Aluno PUC-Rio</p>
                       <p className="text-sm text-muted-foreground">
-                        Entre no sistema acadêmico univérsitário PUC-Rio (SAU)
+                        Entre no Sistema Acadêmico Universitário (SAU) com seu login
                       </p>
                     </div>
                   </div>
@@ -221,9 +229,9 @@ export default function ImportCurriculum() {
                       2
                     </div>
                     <div>
-                      <p className="font-medium">Baixe o Histórico Escolar</p>
+                      <p className="font-medium">Baixe o Espelho do Histórico</p>
                       <p className="text-sm text-muted-foreground">
-                        Vá em "Espelho do Histórico" → "Imprimir" → "Salvar"
+                        Vá em "Histórico Escolar" → "Espelho do Histórico" → "Gerar PDF"
                       </p>
                     </div>
                   </div>
@@ -233,9 +241,9 @@ export default function ImportCurriculum() {
                       3
                     </div>
                     <div>
-                      <p className="font-medium">Faça o Upload</p>
+                      <p className="font-medium">Faça o Upload Aqui</p>
                       <p className="text-sm text-muted-foreground">
-                        Selecione o arquivo PDF e clique em "Importar Currículo"
+                        Selecione o arquivo PDF do histórico e clique em "Importar"
                       </p>
                     </div>
                   </div>
@@ -249,8 +257,8 @@ export default function ImportCurriculum() {
                         Importante
                       </p>
                       <p className="text-sm text-yellow-700">
-                        Certifique-se de que o PDF contém todas as disciplinas cursadas
-                        para obter as melhores recomendações.
+                        Use apenas o histórico oficial da PUC-Rio. Certifique-se de que 
+                        contém todas as disciplinas cursadas para melhores recomendações.
                       </p>
                     </div>
                   </div>
@@ -262,38 +270,72 @@ export default function ImportCurriculum() {
           {/* Benefits Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Benefícios da Importação</CardTitle>
+              <CardTitle>Por que importar seu histórico acadêmico?</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                    <FileText className="h-6 w-6 text-primary" />
+                    <BookOpen className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-medium">Recomendações Personalizadas</h3>
+                  <h3 className="font-medium">Recomendações Inteligentes</h3>
                   <p className="text-sm text-muted-foreground">
-                    Oportunidades baseadas nas suas disciplinas e desempenho
+                    Oportunidades baseadas nas disciplinas que você cursou e seu desempenho
                   </p>
                 </div>
 
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                    <CheckCircle className="h-6 w-6 text-primary" />
+                    <Award className="h-6 w-6 text-primary" />
                   </div>
                   <h3 className="font-medium">Melhor Compatibilidade</h3>
                   <p className="text-sm text-muted-foreground">
-                    Encontre vagas que combinam com seu perfil acadêmico
+                    Encontre monitorias e projetos que combinam com seu perfil acadêmico
                   </p>
                 </div>
 
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                    <Upload className="h-6 w-6 text-primary" />
+                    <GraduationCap className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-medium">Processo Automatizado</h3>
+                  <h3 className="font-medium">Análise Automática</h3>
                   <p className="text-sm text-muted-foreground">
-                    Sistema processa automaticamente seu histórico acadêmico
+                    Sistema analisa automaticamente suas disciplinas e notas
                   </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* What we analyze Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>O que analisamos do seu histórico</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    Disciplinas Cursadas
+                  </h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground ml-6">
+                    <li>• Matérias obrigatórias e optativas</li>
+                    <li>• Áreas de conhecimento</li>
+                    <li>• Pré-requisitos cumpridos</li>
+                  </ul>
+                </div>
+                
+                <div className="space-y-3">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    Desempenho Acadêmico
+                  </h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground ml-6">
+                    <li>• Notas e conceitos obtidos</li>
+                    <li>• Coeficiente de rendimento</li>
+                    <li>• Progresso no curso</li>
+                  </ul>
                 </div>
               </div>
             </CardContent>

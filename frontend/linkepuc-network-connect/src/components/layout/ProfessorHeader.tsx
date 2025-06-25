@@ -67,35 +67,35 @@ export function ProfessorHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
-      <div className="container flex h-16 items-center justify-between">
-        {/* Mobile menu button */}
-        {isMobile && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden" 
-            onClick={toggleMobileMenu}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
-        )}
-
+      <div className="container flex h-16 items-center">
         {/* Left section - hidden on mobile unless menu is open */}
-        {!isMobile && (
-          <div className="flex items-center space-x-8">
-            <Link to="/professor/opportunities" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <Briefcase size={22} />
-              <span className="text-xs">Minhas Oportunidades</span>
-            </Link>
-            <Link to="/professor/opportunities/new" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <FileText size={22} />
-              <span className="text-xs">Nova Oportunidade</span>
-            </Link>
-          </div>
-        )}
+        <div className="flex items-center space-x-8 flex-1">
+          {isMobile && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden" 
+              onClick={toggleMobileMenu}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </Button>
+          )}
+          {!isMobile && (
+            <>
+              <Link to="/professor/opportunities" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                <Briefcase size={22} />
+                <span className="text-xs">Minhas Oportunidades</span>
+              </Link>
+              <Link to="/professor/opportunities/new" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                <FileText size={22} />
+                <span className="text-xs">Nova Oportunidade</span>
+              </Link>
+            </>
+          )}
+        </div>
 
-        {/* Center section - Logo always visible */}
-        <div className={`flex items-center justify-center gap-2 ${isMobile ? "ml-4" : ""}`}>
+        {/* Center section - Logo always visible and centered */}
+        <div className="flex items-center justify-center gap-2 absolute left-1/2 transform -translate-x-1/2">
           <Link to="/professor" className="flex items-center gap-2">
             <div className="relative h-8 w-8">
               <img 
@@ -109,34 +109,35 @@ export function ProfessorHeader() {
         </div>
 
         {/* Right section - conditionally show based on screen size */}
-        {!isMobile && (
-          <div className="flex items-center space-x-8">
-            <Link to="/professor/messages" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-              <MessageSquare size={22} />
-              <span className="text-xs">Mensagens</span>
-            </Link>
-            <div className="border-l h-8" />
+        <div className="flex items-center space-x-8 flex-1 justify-end">
+          {!isMobile && (
+            <>
+              <Link to="/professor/messages" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                <MessageSquare size={22} />
+                <span className="text-xs">Mensagens</span>
+              </Link>
+              <div className="border-l h-8" />
+              <Link to="/professor/profile">
+                <Avatar>
+                  <AvatarImage src={profileData?.avatar || undefined} />
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                </Avatar>
+              </Link>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={handleLogout}>
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </>
+          )}
+          {isMobile && !mobileMenuOpen && (
             <Link to="/professor/profile">
-              <Avatar>
-                <AvatarImage src={profileData?.avatar || undefined} />
-                <AvatarFallback>{getUserInitials()}</AvatarFallback>
-              </Avatar>
-            </Link>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={handleLogout}>
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
-        {isMobile && !mobileMenuOpen && (
-          <div className="flex items-center">
-            <Link to="/professor/profile" className="mr-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={profileData?.avatar || undefined} />
                 <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
               </Avatar>
             </Link>
-          </div>
-        )}
+          )}
+        </div>
+
       </div>
 
       {/* Mobile menu */}
