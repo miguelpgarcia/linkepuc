@@ -67,10 +67,14 @@ export default function ProfessorRegister() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email.endsWith("puc-rio.br")) {
+    // Validate PUC-Rio email domains
+    const validDomains = ["@puc-rio.br", "@inf.puc-rio.br"];
+    const isValidEmail = validDomains.some(domain => formData.email.endsWith(domain));
+    
+    if (!isValidEmail) {
       toast({
         title: "Email inválido",
-        description: "Por favor, use seu email institucional (puc-rio.br)",
+        description: "Por favor, use seu email institucional (@puc-rio.br ou @inf.puc-rio.br)",
         variant: "destructive",
       });
       return;
@@ -152,11 +156,14 @@ export default function ProfessorRegister() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu.nome@puc-rio.br"
+                  placeholder="seu.nome@puc-rio.br ou @inf.puc-rio.br"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   required
                 />
+                <p className="text-sm text-gray-500">
+                  Apenas emails institucionais da PUC-Rio são aceitos para professores
+                </p>
               </div>
 
               <div className="space-y-2">

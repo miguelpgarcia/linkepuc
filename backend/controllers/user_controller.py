@@ -87,6 +87,16 @@ async def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
                 detail="Username already taken"
             )
         
+        # Validate email domain for professors (non-students)
+        if not user.ehaluno:  # If user is not a student (i.e., is a professor)
+            valid_domains = ["@puc-rio.br", "@inf.puc-rio.br"]
+            is_valid_email = any(user.email.endswith(domain) for domain in valid_domains)
+            if not is_valid_email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Professors must use institutional professor email (for now @puc-rio.br or @inf.puc-rio.br are valid, email me if you need help: mpgarcia.br@gmail.com)"
+                )
+        
         # Create user with individual parameters
         db_user = create_user(
             db=db,
