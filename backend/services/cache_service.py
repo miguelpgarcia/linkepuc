@@ -63,12 +63,40 @@ class StaticDataCache:
     
     @staticmethod
     @ttl_cache(seconds=24 * 60 * 60)  # Cache for 24 hours  
-    def get_interests() -> List[Dict]:
-        """Get interests - cached for 24 hours (rarely change)"""
+    def get_interests() -> Dict[str, List[Dict]]:
+        """Get interests organized by category - cached for 24 hours (rarely change)"""
         db = SessionLocal()
         try:
             interests = db.query(Interesses).all()
-            return [{"id": interest.id, "nome": interest.nome} for interest in interests]
+            
+            # Organize interests by category
+            interests_by_category = {}
+            
+            for interest in interests:
+                # Use "Outros" as default category if categoria is None or empty
+                categoria = interest.categoria if interest.categoria else "Outros"
+                
+                if categoria not in interests_by_category:
+                    interests_by_category[categoria] = []
+                
+                interests_by_category[categoria].append({
+                    "id": interest.id, 
+                    "nome": interest.nome,
+                    "categoria": categoria
+                })
+            
+            # Sort categories alphabetically, but put "Outros" at the end
+            sorted_categories = {}
+            other_categories = sorted([cat for cat in interests_by_category.keys() if cat != "Outros"])
+            
+            for categoria in other_categories:
+                sorted_categories[categoria] = sorted(interests_by_category[categoria], key=lambda x: x["nome"])
+            
+            # Add "Outros" at the end if it exists
+            if "Outros" in interests_by_category:
+                sorted_categories["Outros"] = sorted(interests_by_category["Outros"], key=lambda x: x["nome"])
+            
+            return sorted_categories
         finally:
             db.close()
     

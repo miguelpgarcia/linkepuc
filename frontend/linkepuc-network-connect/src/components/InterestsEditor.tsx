@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Interest {
   id: number;
   nome: string;
+  categoria?: string;
 }
 
 interface InterestsEditorProps {
@@ -28,8 +29,9 @@ export function InterestsEditor({
   onCancel, 
   isLoading = false 
 }: InterestsEditorProps) {
-  const [availableInterests, setAvailableInterests] = useState<Interest[]>([]);
+  const [availableInterests, setAvailableInterests] = useState<Record<string, Interest[]>>({});
   const [selectedInterestIds, setSelectedInterestIds] = useState<number[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   // Initialize selected interests
@@ -66,9 +68,15 @@ export function InterestsEditor({
   };
 
   const handleSave = async () => {
+    if (isSaving) return; // Prevent multiple simultaneous requests
+    
+    setIsSaving(true);
     try {
+      // Get all interests from all categories
+      const allInterests = Object.values(availableInterests).flat();
+      
       // Get the names of selected interests
-      const selectedInterestNames = availableInterests
+      const selectedInterestNames = allInterests
         .filter(interest => selectedInterestIds.includes(interest.id))
         .map(interest => interest.nome);
 
@@ -81,7 +89,7 @@ export function InterestsEditor({
       if (!response.ok) throw new Error("Failed to update interests");
 
       // Get the updated interests to pass back
-      const updatedInterests = availableInterests.filter(interest => 
+      const updatedInterests = allInterests.filter(interest => 
         selectedInterestIds.includes(interest.id)
       );
       
@@ -97,10 +105,14 @@ export function InterestsEditor({
         description: "Não foi possível salvar os interesses.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const selectedInterests = availableInterests.filter(interest => 
+  // Get all interests from all categories for selection display
+  const allInterests = Object.values(availableInterests).flat();
+  const selectedInterests = allInterests.filter(interest => 
     selectedInterestIds.includes(interest.id)
   );
 
@@ -118,6 +130,7 @@ export function InterestsEditor({
                   type="button"
                   onClick={() => handleInterestToggle(interest.id)}
                   className="hover:text-destructive"
+                  disabled={isSaving}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -132,20 +145,28 @@ export function InterestsEditor({
       {/* Available Interests */}
       <div>
         <Label className="text-sm font-medium">Selecionar interesses:</Label>
-        <div className="grid grid-cols-2 gap-2 mt-2 max-h-60 overflow-y-auto border rounded-md p-3">
-          {availableInterests.map((interest) => (
-            <div key={interest.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`interest-${interest.id}`}
-                checked={selectedInterestIds.includes(interest.id)}
-                onCheckedChange={() => handleInterestToggle(interest.id)}
-              />
-              <Label 
-                htmlFor={`interest-${interest.id}`}
-                className="text-sm cursor-pointer"
-              >
-                {interest.nome}
-              </Label>
+        <div className="space-y-4 mt-2 max-h-60 overflow-y-auto border rounded-md p-3">
+          {Object.entries(availableInterests).map(([categoria, interests]) => (
+            <div key={categoria} className="space-y-2">
+              <h4 className="font-medium text-sm text-gray-900">{categoria}</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {interests.map((interest) => (
+                  <div key={interest.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`interest-${interest.id}`}
+                      checked={selectedInterestIds.includes(interest.id)}
+                      onCheckedChange={() => handleInterestToggle(interest.id)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor={`interest-${interest.id}`}
+                      className="text-sm cursor-pointer"
+                    >
+                      {interest.nome}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -153,15 +174,15 @@ export function InterestsEditor({
 
       {/* Action Buttons */}
       <div className="flex gap-2 pt-4">
-        <Button onClick={handleSave} disabled={isLoading}>
-          {isLoading ? (
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}
           Salvar Interesses
         </Button>
-        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+        <Button variant="outline" onClick={onCancel} disabled={isSaving}>
           <X className="h-4 w-4 mr-2" />
           Cancelar
         </Button>

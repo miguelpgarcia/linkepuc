@@ -76,7 +76,7 @@ const OBJECTIVES: { value: MainObjective; label: string }[] = [
 
 export default function Register() {
   const [step, setStep] = useState(1);
-  const [availableInterests, setAvailableInterests] = useState<{ id: number; nome: string }[]>([]);
+  const [availableInterests, setAvailableInterests] = useState<Record<string, { id: number; nome: string; categoria: string }[]>>({});
   const [formData, setFormData] = useState<RegistrationData>({
     fullName: "",
     email: "",
@@ -176,7 +176,8 @@ export default function Register() {
       console.log("User created successfully:", userData);
       
       // Get the names of the selected interests
-      const selectedInterests = availableInterests
+      const allInterests = Object.values(availableInterests).flat();
+      const selectedInterests = allInterests
         .filter(interest => formData.interests.includes(interest.id))
         .map(interest => interest.nome);
       
@@ -395,25 +396,32 @@ export default function Register() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleInterestsSubmit} className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                  {availableInterests.map((interest) => (
-                    <div key={interest.id} className="flex items-center space-x-2">
-                          <Checkbox
-                        id={interest.nome}
-                        checked={formData.interests.includes(interest.id)}
-                            onCheckedChange={(checked) => {
-                              setFormData({
-                                ...formData,
-                                interests: checked
-                              ? [...formData.interests, interest.id]
-                              : formData.interests.filter((i) => i !== interest.id),
-                              });
-                            }}
-                          />
-                      <Label htmlFor={interest.nome}>{interest.nome}</Label>
-                        </div>
-                      ))}
+                <div className="space-y-6">
+                  {Object.entries(availableInterests).map(([categoria, interests]) => (
+                    <div key={categoria} className="space-y-3">
+                      <h3 className="font-semibold text-lg text-gray-900">{categoria}</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        {interests.map((interest) => (
+                          <div key={interest.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${categoria}-${interest.nome}`}
+                              checked={formData.interests.includes(interest.id)}
+                              onCheckedChange={(checked) => {
+                                setFormData({
+                                  ...formData,
+                                  interests: checked
+                                    ? [...formData.interests, interest.id]
+                                    : formData.interests.filter((i) => i !== interest.id),
+                                });
+                              }}
+                            />
+                            <Label htmlFor={`${categoria}-${interest.nome}`}>{interest.nome}</Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  ))}
+                </div>
 
                 <div className="flex justify-between mt-6">
                   <Button 

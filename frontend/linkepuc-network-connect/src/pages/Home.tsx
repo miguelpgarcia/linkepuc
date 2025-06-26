@@ -107,12 +107,12 @@ function LoggedOutHome() {
               Conectamos alunos a oportunidades acadêmicas únicas para impulsionar sua carreira universitária
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center sm:items-start">
-              <Button asChild size="lg" className="gap-2">
-                <Link to="/login">
-                  Comece Agora
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-              </Button>
+            <Button asChild size="lg" className="gap-2">
+              <Link to="/login">
+                Comece Agora
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </Button>
               <div className="flex flex-col items-center gap-1">
                 <Button asChild variant="outline" size="lg" className="gap-2 border-green-500 text-green-600 hover:bg-green-50">
                   <Link to="/professor">
@@ -317,7 +317,7 @@ function LoggedInStudentHome({ userData }: { userData: UserProfile }) {
                   <ExternalLink className="h-10 w-10 text-primary mx-auto mb-4" />
                   <h2 className="text-2xl font-bold text-primary mb-2">
                     Explore o Protótipo Completo
-                  </h2>
+                    </h2>
                   <p className="text-muted-foreground mb-6">
                     Veja todas as funcionalidades planejadas e dê seu feedback
                   </p>

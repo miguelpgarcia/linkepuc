@@ -12,7 +12,6 @@ from repositories.interesse_repository import (
 from models.base import SessionLocal
 from pydantic import BaseModel
 from dependecies import get_current_user
-from services.recommendation_service import RecommendationService
 from services.cache_service import static_cache
 from typing import List
 
@@ -104,17 +103,6 @@ async def update_user_interests_endpoint(
     
     try:
         update_user_interests(db, usuario_id, request)
-        
-        # If user is a student, trigger recommendation refresh for interests strategy only
-        if current_user.ehaluno:
-            print(f"User {usuario_id} updated interests, refreshing common_interests strategy")
-            recommendation_service = RecommendationService()
-            success = recommendation_service.calculate_strategy_recommendations(db, usuario_id, "common_interests")
-            if success:
-                print(f"Successfully updated common_interests recommendations for user {usuario_id}")
-            else:
-                print(f"Failed to update common_interests recommendations for user {usuario_id}")
-        
         return {"message": "Interesses atualizados com sucesso"}
     except Exception as e:
         raise HTTPException(
