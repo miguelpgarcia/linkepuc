@@ -130,22 +130,23 @@ async def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
             # Send verification email with is_student parameter
             await send_verification_email(db_user.email, token, user.ehaluno)
         except Exception as e:
-            # If email sending fails, delete the user and roll back
-            db.delete(db_user)
-            db.commit()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to send verification email: {str(e)}"
-            )
+            # Log the error but don't fail the registration
+            print(f"Warning: Failed to send verification email: {str(e)}")
+            # Continue without failing the registration
+            pass
         
         return {
             "message": "User created successfully. Please check your email to verify your account.",
             "user_id": db_user.id
         }
+    except HTTPException:
+        # Re-raise HTTP exceptions (they already have proper status codes)
+        raise
     except Exception as e:
+        print(f"Unexpected error in user creation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail="Internal server error during user creation"
         )
 
 @user_router.post("/verify-email")
@@ -175,7 +176,18 @@ async def verify_email_endpoint(request: VerifyEmailRequest, db: Session = Depen
         db.refresh(user)
         
         print(f"Updated email_verified status: {user.email_verified}")
-        return {"message": "Email verified successfully"}
+        
+        # Generate access token for automatic login
+        access_token = create_access_token(data={"user_id": user.id, "is_student": user.ehaluno})
+        
+        return {
+            "message": "Email verified successfully",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "is_student": user.ehaluno,
+            "user_id": user.id,
+            "user_name": user.usuario
+        }
     except JWTError as e:
         print(f"JWT Error: {str(e)}")
         raise HTTPException(

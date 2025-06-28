@@ -38,14 +38,6 @@ def candidatar_vaga(
     
     candidatura = create_candidatura(db, current_user.id, vaga_id, candidatura_data.carta_motivacao)
     
-    # Trigger recommendation refresh for popular_opportunities strategy after applying
-    print(f"User {current_user.id} applied to vaga {vaga_id}, refreshing popular strategy")
-    recommendation_service = RecommendationService()
-    success = recommendation_service.calculate_strategy_recommendations(db, current_user.id, "popular")
-    if success:
-        print(f"Successfully updated popular recommendations for user {current_user.id}")
-    else:
-        print(f"Failed to update popular recommendations for user {current_user.id}")
     
     return candidatura
 

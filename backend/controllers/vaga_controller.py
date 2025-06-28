@@ -39,6 +39,7 @@ class VagaUpdate(BaseModel):
     titulo: str
     descricao: str
     prazo: str
+    interesses: list[int]  # Add interests to the update model
 
 class VagaStatusUpdate(BaseModel):
     status: str
@@ -137,10 +138,19 @@ async def read_vaga_endpoint(id: int, db: Session = Depends(get_db), user_id: in
     return vaga
 
 @vaga_router.put("/{id}")
-async def update_vaga_endpoint(id: int, vaga: VagaUpdate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
-    updated = update_vaga(db, id, vaga.titulo, vaga.descricao, vaga.prazo)
-    if not updated:
+async def update_vaga_endpoint(id: int, vaga: VagaUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Check if the vaga exists and belongs to the current user
+    existing_vaga = get_vaga(db, id)
+    if not existing_vaga:
         raise HTTPException(status_code=404, detail="Vaga not found")
+    
+    if existing_vaga.autor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this vaga")
+    
+    # Update the vaga
+    updated = update_vaga(db, id, vaga.titulo, vaga.descricao, vaga.prazo, vaga.interesses)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Failed to update vaga")
     return updated
 
 @vaga_router.put("/{id}/status")

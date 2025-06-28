@@ -151,11 +151,22 @@ export default function Register() {
     setStep(3);
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleInterestsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) {
+      console.log("⚠️ Submission already in progress, ignoring duplicate request");
+      return; // Prevent double submission
+    }
+    
+    console.log("🚀 Starting registration process...");
+    setIsSubmitting(true);
   
     try {
       // First create the user
+      console.log("📤 Creating user...");
       const userResponse = await fetch(API_ENDPOINTS.USERS.CREATE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -169,11 +180,12 @@ export default function Register() {
 
       if (!userResponse.ok) {
         const errorData = await userResponse.json();
+        console.error("❌ User creation failed:", errorData);
         throw new Error(errorData.detail || "Erro ao criar usuário");
       }
 
       const userData = await userResponse.json();
-      console.log("User created successfully:", userData);
+      console.log("✅ User created successfully:", userData);
       
       // Get the names of the selected interests
       const allInterests = Object.values(availableInterests).flat();
@@ -186,7 +198,7 @@ export default function Register() {
         usuario_id: userData.user_id,
         interesses: selectedInterests
       };
-      console.log("Sending interests data:", interestsData);
+      console.log("📤 Sending interests data:", interestsData);
       
       // Then add interests
       const interestsResponse = await fetch(API_ENDPOINTS.INTERESSES.USUARIO, {
@@ -207,24 +219,28 @@ export default function Register() {
       }
 
       const interestsResult = await interestsResponse.json();
-      console.log("Interests saved successfully:", interestsResult);
+      console.log("✅ Interests saved successfully:", interestsResult);
     
-    toast({
-      title: "Cadastro realizado com sucesso!",
+      console.log("🎉 Registration completed successfully!");
+      toast({
+        title: "Cadastro realizado com sucesso!",
         description: "Por favor, verifique seu email para ativar sua conta.",
-    });
+      });
     
       // Redirect to login page
-    setTimeout(() => {
+      setTimeout(() => {
         navigate("/login");
-    }, 2000);
+      }, 2000);
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("❌ Registration error:", error);
       toast({
         title: "Erro ao realizar cadastro",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      console.log("🔄 Re-enabling submission button");
+      setIsSubmitting(false); // Re-enable submission
     }
   };
 
@@ -431,8 +447,8 @@ export default function Register() {
                   >
                     Voltar
                   </Button>
-                  <Button type="submit">
-                    Finalizar cadastro
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Finalizando..." : "Finalizar cadastro"}
                   </Button>
                 </div>
               </form>

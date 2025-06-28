@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { ProfessorOpportunityDetail } from "@/types/professor";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { EditOpportunityModal } from "./EditOpportunityModal";
 
 interface ProfessorOpportunityHeaderProps {
   opportunity: ProfessorOpportunityDetail;
@@ -68,11 +69,21 @@ export function ProfessorOpportunityHeader({ opportunity }: ProfessorOpportunity
               </div>
             </div>
             
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/professor/opportunities">
-                Voltar
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <EditOpportunityModal 
+                opportunity={{
+                  id: opportunity.id,
+                  title: opportunity.title,
+                  description: opportunity.description,
+                  interests: opportunity.interests || []
+                }}
+              />
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/professor/opportunities">
+                  Voltar
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 text-sm">

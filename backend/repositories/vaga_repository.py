@@ -267,12 +267,23 @@ def get_vagas(db: Session, skip: int = 0, limit: int = 20, user_id: int = None,
     
     return {"vagas": result, "total": total, "recommended_count": len(recommended_vagas)}
 
-def update_vaga(db: Session, vaga_id: int, titulo: str, descricao: str, prazo: str):
+def update_vaga(db: Session, vaga_id: int, titulo: str, descricao: str, prazo: str, interesses: list[int] = None):
     vaga = db.query(Vagas).filter(Vagas.id == vaga_id).first()
     if vaga:
         vaga.titulo = titulo
         vaga.descricao = descricao
         vaga.prazo = prazo
+        
+        # Update interests if provided
+        if interesses is not None:
+            # Delete existing interests
+            db.query(InteresseVaga).filter(InteresseVaga.vaga_id == vaga_id).delete()
+            
+            # Add new interests
+            for interesse_id in interesses:
+                interesse_vaga = InteresseVaga(interesse_id=interesse_id, vaga_id=vaga_id)
+                db.add(interesse_vaga)
+        
         db.commit()
         db.refresh(vaga)
     return vaga
